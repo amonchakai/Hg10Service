@@ -72,10 +72,11 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
         m_Connected(false),
         m_LastError(0),
         m_SendContactWhenAvailable(false),
-        m_VcardManagerConnected(false),
+
         m_Port(27015),
         m_NotificationEnabled(true),
-        m_Restarting(false) {
+        m_Restarting(false),
+        m_VcardManagerConnected(false) {
 
 
 
@@ -833,6 +834,37 @@ void XMPP::readyRead() {
 
         case XMPPServiceMessages::REFRESH_SETTINGS:
             updateSettings();
+            break;
+
+
+        case XMPPServiceMessages::SET_STATUS_TEXT: {
+            QByteArray code_str = m_Socket->read(sizeof(int));
+            int size = *reinterpret_cast<int*>(code_str.data());
+            QString text = QString(m_Socket->read(size));
+
+            code_str = m_Socket->read(sizeof(int));
+            int presence = *reinterpret_cast<int*>(code_str.data());
+
+            QXmppPresence s;
+            s.setPriority(0);
+            s.setStatusText(text);
+            s.setType(static_cast<QXmppPresence::Type>(presence));
+
+            this->setClientPresence(s);
+        }
+            break;
+
+
+        case XMPPServiceMessages::SET_PRESENCE: {
+            QByteArray code_str = m_Socket->read(sizeof(int));
+            int code = *reinterpret_cast<int*>(code_str.data());
+
+            QXmppPresence s;
+            s.setPriority(0);
+            s.setType(static_cast<QXmppPresence::Type>(code));
+            this->setClientPresence(s);
+
+        }
             break;
 
 
