@@ -845,10 +845,43 @@ void XMPP::readyRead() {
             code_str = m_Socket->read(sizeof(int));
             int presence = *reinterpret_cast<int*>(code_str.data());
 
-            QXmppPresence s;
+            QXmppPresence s = clientPresence();
             s.setPriority(0);
+            s.setType(QXmppPresence::Available);
             s.setStatusText(text);
-            s.setType(static_cast<QXmppPresence::Type>(presence));
+            s.setAvailableStatusType(static_cast<QXmppPresence::AvailableStatusType>(presence));
+
+
+
+
+            {
+                // -------------------------------------------------------------
+                // get vCard from file
+                QString vCardsDir = QDir::homePath() + QLatin1String("/vCards");
+                QFile file(vCardsDir + "/" + configuration().jidBare().toLower() + ".xml");
+
+                QDomDocument doc("vCard");
+                file.open(QIODevice::ReadOnly);
+
+                if (!doc.setContent(&file)) {
+                    //file.close();
+                    //return;
+                }
+                file.close();
+
+                QXmppVCardIq vCard;
+                vCard.parse(doc.documentElement());
+
+                if(vCard.photo().isEmpty())
+                    s.setVCardUpdateType(QXmppPresence::VCardUpdateNoPhoto);
+                else {
+                    s.setVCardUpdateType(QXmppPresence::VCardUpdateValidPhoto);
+                    qDebug() << "Valid photo!";
+                }
+                s.setPhotoHash(vCard.photo());
+            }
+
+            qDebug() << "SET STATUS : " << static_cast<QXmppPresence::AvailableStatusType>(presence) << configuration().jidBare();
 
             this->setClientPresence(s);
         }
@@ -861,7 +894,7 @@ void XMPP::readyRead() {
 
             QXmppPresence s;
             s.setPriority(0);
-            s.setType(static_cast<QXmppPresence::Type>(code));
+            s.setAvailableStatusType(static_cast<QXmppPresence::AvailableStatusType>(code));
             this->setClientPresence(s);
 
         }
@@ -889,6 +922,7 @@ void XMPP::readyRead() {
     }
 
 }
+
 
 void XMPP::remoteClientDisconect() {
     disconnect(m_Socket.get(), SIGNAL(disconnected()), this, SLOT(remoteClientDisconect()));
