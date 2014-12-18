@@ -846,7 +846,7 @@ void XMPP::readyRead() {
             int presence = *reinterpret_cast<int*>(code_str.data());
 
             QXmppPresence s = clientPresence();
-            s.setPriority(0);
+            s.setPriority(20);
             s.setType(QXmppPresence::Available);
             s.setStatusText(text);
             s.setAvailableStatusType(static_cast<QXmppPresence::AvailableStatusType>(presence));
@@ -893,7 +893,7 @@ void XMPP::readyRead() {
             int code = *reinterpret_cast<int*>(code_str.data());
 
             QXmppPresence s;
-            s.setPriority(0);
+            s.setPriority(20);
             s.setAvailableStatusType(static_cast<QXmppPresence::AvailableStatusType>(code));
             this->setClientPresence(s);
 
