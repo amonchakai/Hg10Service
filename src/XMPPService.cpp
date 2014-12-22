@@ -900,7 +900,24 @@ void XMPP::readyRead() {
         }
             break;
 
+        case XMPPServiceMessages::ADD_CONTACT: {
+            QByteArray code_str = m_Socket->read(sizeof(int));
+            int size = *reinterpret_cast<int*>(code_str.data());
+            QString contactId = QString(m_Socket->read(size));
 
+            QXmppRosterIq nContact;
+            nContact.setType(QXmppIq::Set);
+            QXmppRosterIq::Item itemAdded;
+            itemAdded.setBareJid(contactId);
+            itemAdded.setSubscriptionType(QXmppRosterIq::Item::Both);
+            nContact.addItem(itemAdded);
+            sendPacket(nContact);
+
+        }
+            break;
+
+        // -------
+        // MUC messages
         case XMPPServiceMessages::CREATE_ROOM: {
             QByteArray code_str = m_Socket->read(sizeof(int));
             int size = *reinterpret_cast<int*>(code_str.data());
