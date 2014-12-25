@@ -98,7 +98,7 @@ void HeadlessApplication::onInvoked(const bb::system::InvokeRequest& request) {
             m_app->requestExit();
 
         } else if(request.action().compare("bb.action.MARKREAD") == 0) {
-            qDebug() << "HeadlessHubIntegration: onInvoked: mark read" << request.data();
+            //qDebug() << "HeadlessHubIntegration: onInvoked: mark read" << request.data();
             bb::data::JsonDataAccess jda;
 
             QVariantMap objectMap = (jda.loadFromBuffer(request.data())).toMap();
@@ -262,6 +262,9 @@ void HeadlessApplication::resynchHub() {
             }
 
             if(existing) {
+                if(itemMap["timestamp"].toULongLong() == e.m_When)
+                    continue;
+
                 itemMap["description"] = e.m_What;
                 itemMap["timestamp"] = e.m_When;
                 itemMap["readCount"] = e.m_Read;
@@ -272,6 +275,7 @@ void HeadlessApplication::resynchHub() {
                 } else if (itemMap["messageid"].toString().length() > 0) {
                     itemId = itemMap["messageid"].toLongLong();
                 }
+
 
                 m_Hub->updateHubItem(m_Hub->categoryId(), itemId, itemMap, e.m_Read == 0);
 
