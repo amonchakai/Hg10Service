@@ -63,6 +63,7 @@ private:
     boost::shared_ptr<QTcpServer>           m_Server;
     boost::shared_ptr<QTcpSocket>           m_Socket;
 
+
     bool                      m_NotificationEnabled;
     bool                      m_Restarting;
     bool                      m_VcardManagerConnected;
@@ -143,6 +144,7 @@ Q_SIGNALS:
     void removeHubAccount   ();
 
 };
+
 
 
 class TcpThreadBind : public QThread {
