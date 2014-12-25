@@ -140,8 +140,7 @@ Q_SIGNALS:
     void presenceUpdated    (const QString &who, int status);
     void quitApp            ();
 
-    void initHubAccount     ();
-    void removeHubAccount   ();
+    void updateHubAccount   ();
 
 };
 

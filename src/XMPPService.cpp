@@ -48,10 +48,8 @@ TcpThreadBind::TcpThreadBind(QObject *parent) : QThread(parent), m_Port(0) {
 
 void TcpThreadBind::run() {
     if(m_Server != NULL) {
-        //if(!m_Server->isListening())
-         m_Server->listen(QHostAddress::LocalHost, m_Port);
-
-         emit finished();
+        if(!m_Server->isListening())
+            m_Server->listen(QHostAddress::LocalHost, m_Port);
     }
 }
 
@@ -462,12 +460,14 @@ void XMPP::messageReceived(const QXmppMessage& message) {
     } else {
         if(!message.body().isEmpty()) {
 
+            logReceivedMessage(message.from(), message.to(), message.body());
+
             if(m_NotificationEnabled) {
                 bb::platform::Notification notif;
                 notif.notify();
+                emit updateHubAccount();
             }
 
-            logReceivedMessage(message.from(), message.to(), message.body());
         }
 
     }
@@ -938,26 +938,10 @@ void XMPP::readyRead() {
         // Hub messages
 
         case XMPPServiceMessages::HUB_CALL_INIT_ACCOUNT: {
-            qDebug() << "init hub..." << m_Hub;
-
-            if(m_Hub == NULL) {
-                qDebug() << "try to init hub....";
-                qDebug() << "app: " << m_App;
-                if(m_App != NULL) {
-                    m_App->initializeHub();
-
-                }
-            }
-            emit initHubAccount();
             break;
         }
 
         case XMPPServiceMessages::HUB_CALL_DELETE_ACCOUNT: {
-            qDebug() << "Attempt delete Hub Entry...";
-            if(m_Hub != NULL) {
-                qDebug() << "Hub created...";
-                m_Hub->remove();
-            }
             break;
         }
 

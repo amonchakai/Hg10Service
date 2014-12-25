@@ -52,6 +52,8 @@ HeadlessApplication::HeadlessApplication(bb::Application *app) :
     qDebug() << "initializeHub()";
     initializeHub();
 
+    if(m_Settings != NULL)
+        m_ItemCounter = m_Settings->value("itemCounter", 0).toLongLong();
 
     // ---------------------------------------------------------------------
     // Catch events
@@ -78,7 +80,7 @@ void HeadlessApplication::delayedXMPPInit() {
     XMPP::get()->m_App = this;
 
     qDebug() << "connect signal()";
-    bool check = QObject::connect(XMPP::get(), SIGNAL(initHubAccount()), this, SLOT(resynchHub()));
+    bool check = QObject::connect(XMPP::get(), SIGNAL(updateHubAccount()), this, SLOT(resynchHub()));
     Q_ASSERT(check);
     Q_UNUSED(check);
     qDebug() << "connected signal";
@@ -104,36 +106,139 @@ void HeadlessApplication::onInvoked(const bb::system::InvokeRequest& request) {
             QVariantMap objectMap = (jda.loadFromBuffer(request.data())).toMap();
             QVariantMap attributesMap = objectMap["attributes"].toMap();
 
+            {
+
+                QString directory = QDir::homePath() + QLatin1String("/ApplicationData/History");
+                TimeEvent e;
+                QString filename = directory + "/" + attributesMap["userData"].toString() + ".preview";
+                qDebug() << filename;
+
+                QFile file2(filename);
+                if (file2.open(QIODevice::ReadOnly)) {
+                    QDataStream stream(&file2);
+                    stream >> e;
+                    file2.close();
+
+                    e.m_Read = 1;
+                    attributesMap["description"] = e.m_What;
+
+                    QFile file(filename);
+                    if(file.open(QIODevice::WriteOnly)) {
+                        QDataStream stream(&file);
+                        stream << e;
+                        file.close();
+                    }
+                }
+
+                markHubItemRead(attributesMap);
+            }
+
 
         } else if(request.action().compare("bb.action.MARKUNREAD") == 0) {
-            qDebug() << "HeadlessHubIntegration: onInvoked: mark unread" << request.data();
+            //qDebug() << "HeadlessHubIntegration: onInvoked: mark unread" << request.data();
             bb::data::JsonDataAccess jda;
 
             QVariantMap objectMap = (jda.loadFromBuffer(request.data())).toMap();
             QVariantMap attributesMap = objectMap["attributes"].toMap();
 
+            {
+
+                QString directory = QDir::homePath() + QLatin1String("/ApplicationData/History");
+                TimeEvent e;
+                QString filename = directory + "/" + attributesMap["userData"].toString() + ".preview";
+                qDebug() << filename;
+
+                QFile file2(filename);
+                if (file2.open(QIODevice::ReadOnly)) {
+                    QDataStream stream(&file2);
+                    stream >> e;
+                    file2.close();
+
+                    e.m_Read = 0;
+
+                    QFile file(filename);
+                    if(file.open(QIODevice::WriteOnly)) {
+                        QDataStream stream(&file);
+                        stream << e;
+                        file.close();
+                    }
+                }
+
+                markHubItemUnread(attributesMap);
+            }
 
         } else if(request.action().compare("bb.action.MARKPRIORREAD") == 0) {
             bb::data::JsonDataAccess jda;
 
             qint64 timestamp = (jda.loadFromBuffer(request.data())).toLongLong();
-            QDateTime date = QDateTime::fromMSecsSinceEpoch(timestamp);
 
-            qDebug() << "HeadlessHubIntegration: onInvoked: mark prior read : " << timestamp << " : " << request.data();
+            QVariantList hubItems = m_Hub->items();
+            for(int i = 0 ; i < hubItems.size() ; ++i) {
+                QVariantMap item = hubItems.at(i).toMap();
+
+                if(item["timestamp"].toLongLong() < timestamp) {
+                    QString directory = QDir::homePath() + QLatin1String("/ApplicationData/History");
+                    TimeEvent e;
+                    QString filename = directory + "/" + item["userData"].toString() + ".preview";
+                    qDebug() << filename;
+
+                    QFile file2(filename);
+                    if (file2.open(QIODevice::ReadOnly)) {
+                        QDataStream stream(&file2);
+                        stream >> e;
+                        file2.close();
+
+                        e.m_Read = 1;
+
+                        QFile file(filename);
+                        if(file.open(QIODevice::WriteOnly)) {
+                            QDataStream stream(&file);
+                            stream << e;
+                            file.close();
+                        }
+                    }
+
+                    markHubItemRead(item);
+                }
+            }
+
 
         } else if(request.action().compare("bb.action.DELETE") == 0) {
-            qDebug() << "HeadlessHubIntegration: onInvoked: HeadlessHubIntegration : delete" << request.data();
+            // qDebug() << "HeadlessHubIntegration: onInvoked: HeadlessHubIntegration : delete" << request.data();
             bb::data::JsonDataAccess jda;
 
             QVariantMap objectMap = (jda.loadFromBuffer(request.data())).toMap();
             QVariantMap attributesMap = objectMap["attributes"].toMap();
 
+            {
+                QString directory = QDir::homePath() + QLatin1String("/ApplicationData/History");
+                TimeEvent e;
+                if (QFile::exists(directory + "/" + attributesMap["userData"].toString() + ".preview")) {
+                    QDir dir(directory);
+                    dir.remove(attributesMap["userData"].toString() + ".preview");
+                }
+                removeHubItem(attributesMap);
+            }
 
         } else if(request.action().compare("bb.action.DELETEPRIOR") == 0) {
             bb::data::JsonDataAccess jda;
 
             qint64 timestamp = (jda.loadFromBuffer(request.data())).toLongLong();
-            QDateTime date = QDateTime::fromMSecsSinceEpoch(timestamp);
+            QVariantList hubItems = m_Hub->items();
+            for(int i = 0 ; i < hubItems.size() ; ++i) {
+                QVariantMap item = hubItems.at(i).toMap();
+
+                if(item["timestamp"].toLongLong() < timestamp) {
+                    QString directory = QDir::homePath() + QLatin1String("/ApplicationData/History");
+                    TimeEvent e;
+                    if (QFile::exists(directory + "/" + item["userData"].toString() + ".preview")) {
+                        QDir dir(directory);
+                        dir.remove(item["userData"].toString() + ".preview");
+                    }
+                    removeHubItem(item);
+                }
+            }
+
 
             qDebug() << "HeadlessHubIntegration: onInvoked: mark prior delete : " << timestamp << " : " << request.data();
 
@@ -142,7 +247,6 @@ void HeadlessApplication::onInvoked(const bb::system::InvokeRequest& request) {
         }
 
 }
-
 
 
 void HeadlessApplication::markHubItemRead(QVariantMap itemProperties) {
@@ -310,6 +414,10 @@ void HeadlessApplication::resynchHub() {
                 }
 
                 m_Hub->addHubItem(m_Hub->categoryId(), entry, name, e.m_What, e.m_When, QString::number(m_ItemCounter++), dirFile.mid(0, dirFile.length()-8), "",  e.m_Read == 0);
+
+                if(m_Settings != NULL)
+                    m_Settings->setValue("itemCounter", m_ItemCounter);
+
 
                 qint64 itemId;
                 if (entry["sourceId"].toString().length() > 0) {
