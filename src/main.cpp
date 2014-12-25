@@ -23,18 +23,58 @@
 
 #include <Qt/qdeclarativedebug.h>
 #include "XMPPService.hpp"
+
 #include "Hub/HubIntegration.hpp"
+#include "Hub/UDSUtil.hpp"
+#include "Hub/HubCache.hpp"
+
+void debugOutputMessages(QtMsgType type, const char *msg) {
+
+    QString directory = QDir::homePath() + QLatin1String("/ApplicationData");
+    if (!QFile::exists(directory)) {
+        QDir dir;
+        dir.mkpath(directory);
+    }
+
+    QFile file(directory + "/Logs.txt");
+    if (!file.open(QIODevice::Append)) {
+        return;
+    }
+    QTextStream stream(&file);
+
+    switch (type) {
+        case QtDebugMsg:
+            stream << "<div class=\"debug\">[DEBUG]"  <<  msg << "</div>";
+            break;
+        case QtWarningMsg:
+            stream << "<div class=\"warning\">[WARNING]"  <<  msg << "</div>";
+            break;
+        case QtCriticalMsg:
+            stream << "<div class=\"critical\">[CRITICAL]"  <<  msg << "</div>";
+            break;
+        case QtFatalMsg:
+            stream << "<div class=\"fatal\">[FATAL]"  <<  msg << "</div>";
+            file.close();
+            abort();
+    }
+
+    file.close();
+
+ }
+
 
 Q_DECL_EXPORT int main(int argc, char **argv)
 {
+    // redirect log to a file...
+    //qInstallMsgHandler(debugOutputMessages);
     bb::Application app(argc, argv);
 
-    // create the xmpp client
-    XMPP xmpp;
-    xmpp.set(&xmpp);
+    // create the xmpp client, allocate the XMPP client on the stack
+    // XMPP xmpp;
+    // xmpp.set(&xmpp);
 
     // Create Headless application.
-    HeadlessApplication happ(&app); // it was a new HeadlessApplication(&app);
+    new HeadlessApplication(&app);
 
 
     // Enter the application main event loop.

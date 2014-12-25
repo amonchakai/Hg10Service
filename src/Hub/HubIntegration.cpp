@@ -63,6 +63,8 @@ HubIntegration::HubIntegration(UDSUtil* udsUtil, HubCache* hubCache) : HubAccoun
 
         _udsUtil->resetReloadHub();
     }
+
+    qDebug() << "HubIntegration: initialization done!";
 }
 
 

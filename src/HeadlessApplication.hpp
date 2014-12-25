@@ -49,23 +49,22 @@ private:
 
     bb::system::InvokeManager                       *m_InvokeManager;
     bb::Application                                 *m_app;
-
-    QSettings                                       *m_AppSettings;
+    UDSUtil                                         *m_UdsUtil;
+    QSettings                                       *m_Settings;
+    HubCache                                        *m_HubCache;
     HubIntegration                                  *m_Hub;
 
-    HubCache                                        *m_HubCache;
-    UDSUtil                                         *m_UdsUtil;
     QMutex                                           m_InitMutex;
     int                                              m_ItemCounter;
 
 public:
     HeadlessApplication(bb::Application *app);
     virtual ~HeadlessApplication() {}
-
     void initializeHub();
 
 public Q_SLOTS:
     void resynchHub();
+    void delayedXMPPInit();
 
 
 private slots:

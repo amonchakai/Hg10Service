@@ -31,7 +31,7 @@
 #include "Hub/HubIntegration.hpp"
 #include "GoogleConnectController.hpp"
 #include "PrivateAPIKeys.h"
-
+#include "HeadlessApplication.hpp"
 
 XMPP* XMPP::m_This = NULL;
 QReadWriteLock  mutex;
@@ -40,17 +40,7 @@ QReadWriteLock  mutexLoadLocal;
 // ===============================================================================================
 // Utility class: start the TCP server which wait for UI in another thread
 
-class TcpThreadBind : public QThread {
 
-public:
-    TcpThreadBind(QObject *parent = 0);
-    virtual ~TcpThreadBind() {}
-
-    int                             m_Port;
-    boost::shared_ptr<QTcpServer>   m_Server;
-
-    void run();
-};
 
 TcpThreadBind::TcpThreadBind(QObject *parent) : QThread(parent), m_Port(0) {
 
@@ -60,10 +50,14 @@ void TcpThreadBind::run() {
     if(m_Server != NULL) {
         //if(!m_Server->isListening())
          m_Server->listen(QHostAddress::LocalHost, m_Port);
-        exec();
+
+         emit finished();
     }
 }
 
+void TcpThreadBind::process() {
+    run();
+}
 
 // ===============================================================================================
 // The Core XMPP Service : a QMPPClient
@@ -71,6 +65,7 @@ void TcpThreadBind::run() {
 
 XMPP::XMPP(QObject *parent) : QXmppClient(parent),
         m_Hub(NULL),
+        m_App(NULL),
         m_Connected(false),
         m_LastError(0),
         m_SendContactWhenAvailable(false),
@@ -664,7 +659,8 @@ void XMPP::sendMessageTo(const QString &to, const QString &message) {
 
 void XMPP::waitRemote() {
     qDebug() << "Wait remote.";
-    m_TcpThreadBind->run();
+    QTimer::singleShot(1000, m_TcpThreadBind.get(), SLOT(process()));
+
 }
 
 void XMPP::newConnection() {
@@ -943,6 +939,15 @@ void XMPP::readyRead() {
 
         case XMPPServiceMessages::HUB_CALL_INIT_ACCOUNT: {
             qDebug() << "init hub..." << m_Hub;
+
+            if(m_Hub == NULL) {
+                qDebug() << "try to init hub....";
+                qDebug() << "app: " << m_App;
+                if(m_App != NULL) {
+                    m_App->initializeHub();
+
+                }
+            }
             emit initHubAccount();
             break;
         }

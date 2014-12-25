@@ -34,33 +34,29 @@ HeadlessApplication::HeadlessApplication(bb::Application *app) :
         QObject(app),
         m_InvokeManager(new bb::system::InvokeManager()),
         m_app(app),
-        m_AppSettings(NULL),
-        m_Hub(NULL),
         m_UdsUtil(NULL),
+        m_Settings(NULL),
         m_HubCache(NULL),
+        m_Hub(NULL),
         m_ItemCounter(0) {
 
     m_InvokeManager->setParent(this);
-
-    initializeHub();
 
     // ---------------------------------------------------------------------
     // prepare to process events
 
     qDebug() << "-----------------------------------\nStart Headless app!...\n------------------------------------";
 
-    XMPP::get();
 
 
-
-    bool check = QObject::connect(XMPP::get(), SIGNAL(initHubAccount()), this, SLOT(resynchHub()));
-    Q_ASSERT(check);
-    Q_UNUSED(check);
+    qDebug() << "initializeHub()";
+    initializeHub();
 
 
     // ---------------------------------------------------------------------
     // Catch events
 
+    qDebug() << "connect invoke framework";
     bool connectResult;
 
     Q_UNUSED(connectResult);
@@ -71,51 +67,25 @@ HeadlessApplication::HeadlessApplication(bb::Application *app) :
 
     Q_ASSERT(connectResult);
 
+    qDebug() << "connected invoke framework";
+
+    QTimer::singleShot(3000, this, SLOT(delayedXMPPInit()));
+
 }
 
-void HeadlessApplication::initializeHub()
-{
+void HeadlessApplication::delayedXMPPInit() {
+    XMPP::get()->m_Hub = m_Hub;
+    XMPP::get()->m_App = this;
 
-    m_InitMutex.lock();
-
-    // initialize UDS
-    if (!m_UdsUtil) {
-        m_UdsUtil = new UDSUtil(QString("Hg10HubService"), QString("hubassets"));
-    }
-
-    if (!m_UdsUtil->initialized()) {
-        m_UdsUtil->initialize();
-    }
-
-    if (m_UdsUtil->initialized() && m_UdsUtil->registered()) {
-        if (!m_AppSettings) {
-            m_AppSettings = new QSettings("Amonchakai", "Hg10Service");
-        }
-
-        if (!m_HubCache) {
-            m_HubCache = new HubCache(m_AppSettings);
-        }
-
-        if (!m_Hub) {
-
-            m_Hub = new HubIntegration(m_UdsUtil, m_HubCache);
-
-
-            if(m_Hub != NULL) {
-
-                XMPP::get()->m_Hub = m_Hub;
-
-            }
-        }
-    }
-
-    m_InitMutex.unlock();
+    qDebug() << "connect signal()";
+    bool check = QObject::connect(XMPP::get(), SIGNAL(initHubAccount()), this, SLOT(resynchHub()));
+    Q_ASSERT(check);
+    Q_UNUSED(check);
+    qDebug() << "connected signal";
 }
-
 
 void HeadlessApplication::onInvoked(const bb::system::InvokeRequest& request) {
     qDebug() << "invoke Headless!" << request.action();
-
     initializeHub();
 
     if(request.action().compare("bb.action.system.STARTED") == 0) {
@@ -214,6 +184,40 @@ void HeadlessApplication::removeHubItem(QVariantMap itemProperties) {
 }
 
 
+void HeadlessApplication::initializeHub() {
+
+    m_InitMutex.lock();
+
+    // initialize UDS
+    if (!m_UdsUtil) {
+        qDebug() << "new UDSUtil()";
+        m_UdsUtil = new UDSUtil(QString("exampleHubService"), QString("hubassets"));
+    }
+
+    if (!m_UdsUtil->initialized()) {
+        qDebug() << "initialize()";
+        m_UdsUtil->initialize();
+    }
+
+    if (m_UdsUtil->initialized() && m_UdsUtil->registered()) {
+        qDebug() << "m_UdsUtil->initialized() && m_UdsUtil->registered()";
+        if (!m_Settings) {
+
+            m_Settings = new QSettings("Amonchakai", "Hg10Service");
+        }
+        if (!m_HubCache) {
+            m_HubCache = new HubCache(m_Settings);
+        }
+        if (!m_Hub) {
+            qDebug() << "new HubIntegration()";
+            m_Hub = new HubIntegration(m_UdsUtil, m_HubCache);
+        }
+    }
+
+    qDebug() << "done initializeHub()";
+    m_InitMutex.unlock();
+}
+
 
 // ------------------------------------------------------------------------------------
 // List all conversations, and update the Hub
@@ -221,14 +225,7 @@ void HeadlessApplication::removeHubItem(QVariantMap itemProperties) {
 void HeadlessApplication::resynchHub() {
 
     if(m_Hub == NULL) {
-        qDebug() << "hub update was required....";
-        initializeHub();
-
-        if(m_Hub == NULL) {
-            qDebug() << "did not suceeded....";
-            return;
-
-        }
+        return;
     }
 
     // items already into the hub

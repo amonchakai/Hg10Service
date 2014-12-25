@@ -12,6 +12,7 @@
 #include "client/QXmppClient.h"
 #include "base/QXmppLogger.h"
 #include <boost/shared_ptr.hpp>
+#include <QThread>
 
 class QXmppVCardIq;
 class QTcpServer;
@@ -21,6 +22,7 @@ class QXmppMucManager;
 class QXmppMucRoom;
 class GoogleConnectController;
 class HubIntegration;
+class HeadlessApplication;
 
 class XMPP : public QXmppClient {
     Q_OBJECT;
@@ -34,6 +36,7 @@ public:
 
 
     HubIntegration                           *m_Hub;
+    HeadlessApplication                      *m_App;
 
 private:
 
@@ -140,6 +143,24 @@ Q_SIGNALS:
     void removeHubAccount   ();
 
 };
+
+
+class TcpThreadBind : public QThread {
+    Q_OBJECT
+
+public:
+    TcpThreadBind(QObject *parent = 0);
+    virtual ~TcpThreadBind() {}
+
+    int                             m_Port;
+    boost::shared_ptr<QTcpServer>   m_Server;
+
+    void run();
+
+public slots:
+    void process();
+};
+
 
 
 #endif /* XMPPSERVICE_HPP_ */
