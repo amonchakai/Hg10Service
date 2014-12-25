@@ -23,7 +23,7 @@
 
 #include <Qt/qdeclarativedebug.h>
 #include "XMPPService.hpp"
-
+#include "Hub/HubIntegration.hpp"
 
 Q_DECL_EXPORT int main(int argc, char **argv)
 {
@@ -32,7 +32,6 @@ Q_DECL_EXPORT int main(int argc, char **argv)
     // create the xmpp client
     XMPP xmpp;
     xmpp.set(&xmpp);
-
 
     // Create Headless application.
     HeadlessApplication happ(&app); // it was a new HeadlessApplication(&app);

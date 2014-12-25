@@ -38,6 +38,10 @@ config_pri_source_group1 {
     SOURCES += \
         $$quote($$BASEDIR/src/GoogleConnectController.cpp) \
         $$quote($$BASEDIR/src/HeadlessApplication.cpp) \
+        $$quote($$BASEDIR/src/Hub/HubAccount.cpp) \
+        $$quote($$BASEDIR/src/Hub/HubCache.cpp) \
+        $$quote($$BASEDIR/src/Hub/HubIntegration.cpp) \
+        $$quote($$BASEDIR/src/Hub/UDSUtil.cpp) \
         $$quote($$BASEDIR/src/Image/CookieJar.cpp) \
         $$quote($$BASEDIR/src/Image/HFRNetworkAccessManager.cpp) \
         $$quote($$BASEDIR/src/XMPPService.cpp) \
@@ -103,6 +107,10 @@ config_pri_source_group1 {
     HEADERS += \
         $$quote($$BASEDIR/src/GoogleConnectController.hpp) \
         $$quote($$BASEDIR/src/HeadlessApplication.hpp) \
+        $$quote($$BASEDIR/src/Hub/HubAccount.hpp) \
+        $$quote($$BASEDIR/src/Hub/HubCache.hpp) \
+        $$quote($$BASEDIR/src/Hub/HubIntegration.hpp) \
+        $$quote($$BASEDIR/src/Hub/UDSUtil.hpp) \
         $$quote($$BASEDIR/src/Image/CookieJar.hpp) \
         $$quote($$BASEDIR/src/Image/HFRNetworkAccessManager.hpp) \
         $$quote($$BASEDIR/src/PrivateAPIKeys.h) \
@@ -178,6 +186,11 @@ lupdate_inclusion {
         $$quote($$BASEDIR/../src/*.cc) \
         $$quote($$BASEDIR/../src/*.cpp) \
         $$quote($$BASEDIR/../src/*.cxx) \
+        $$quote($$BASEDIR/../src/Hub/*.c) \
+        $$quote($$BASEDIR/../src/Hub/*.c++) \
+        $$quote($$BASEDIR/../src/Hub/*.cc) \
+        $$quote($$BASEDIR/../src/Hub/*.cpp) \
+        $$quote($$BASEDIR/../src/Hub/*.cxx) \
         $$quote($$BASEDIR/../src/Image/*.c) \
         $$quote($$BASEDIR/../src/Image/*.c++) \
         $$quote($$BASEDIR/../src/Image/*.cc) \

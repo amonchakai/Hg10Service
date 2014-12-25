@@ -28,6 +28,7 @@
 #include <QSettings>
 #include <bb/Application>
 
+#include "Hub/HubIntegration.hpp"
 #include "GoogleConnectController.hpp"
 #include "PrivateAPIKeys.h"
 
@@ -69,6 +70,7 @@ void TcpThreadBind::run() {
 
 
 XMPP::XMPP(QObject *parent) : QXmppClient(parent),
+        m_Hub(NULL),
         m_Connected(false),
         m_LastError(0),
         m_SendContactWhenAvailable(false),
@@ -934,6 +936,25 @@ void XMPP::readyRead() {
              QString participantId = QString(m_Socket->read(size));
         }
             break;
+
+
+        // --------------------------------------------------------
+        // Hub messages
+
+        case XMPPServiceMessages::HUB_CALL_INIT_ACCOUNT: {
+            qDebug() << "init hub..." << m_Hub;
+            emit initHubAccount();
+            break;
+        }
+
+        case XMPPServiceMessages::HUB_CALL_DELETE_ACCOUNT: {
+            qDebug() << "Attempt delete Hub Entry...";
+            if(m_Hub != NULL) {
+                qDebug() << "Hub created...";
+                m_Hub->remove();
+            }
+            break;
+        }
 
 
     }

@@ -22,6 +22,10 @@
 #include <QObject>
 #include <QSettings>
 
+#include "Hub/UDSUtil.hpp"
+#include "Hub/HubCache.hpp"
+
+
 namespace bb
 {
     namespace cascades
@@ -30,6 +34,7 @@ namespace bb
     }
 }
 
+class HubIntegration;
 
 /*!
  * @brief Application UI object
@@ -46,13 +51,21 @@ private:
     bb::Application                                 *m_app;
 
     QSettings                                       *m_AppSettings;
+    HubIntegration                                  *m_Hub;
 
+    HubCache                                        *m_HubCache;
+    UDSUtil                                         *m_UdsUtil;
+    QMutex                                           m_InitMutex;
+    int                                              m_ItemCounter;
 
 public:
     HeadlessApplication(bb::Application *app);
     virtual ~HeadlessApplication() {}
 
+    void initializeHub();
 
+public Q_SLOTS:
+    void resynchHub();
 
 
 private slots:
@@ -62,6 +75,8 @@ private slots:
     void markHubItemRead(QVariantMap itemProperties);
     void markHubItemUnread(QVariantMap itemProperties);
     void removeHubItem(QVariantMap itemProperties);
+
+
 
 };
 

@@ -20,6 +20,7 @@ class TcpThreadBind;
 class QXmppMucManager;
 class QXmppMucRoom;
 class GoogleConnectController;
+class HubIntegration;
 
 class XMPP : public QXmppClient {
     Q_OBJECT;
@@ -31,6 +32,8 @@ public:
     void                           set(XMPP* c)                     {m_This = c;};
     static XMPP*                   get();
 
+
+    HubIntegration                           *m_Hub;
 
 private:
 
@@ -46,6 +49,7 @@ private:
     bool                                     m_SendContactWhenAvailable;
     QString                                  m_User;
     QMap<QString, int>                       m_ContactList;
+
 
     boost::shared_ptr<GoogleConnectController> m_GoogleConnect;
 
@@ -131,6 +135,9 @@ Q_SIGNALS:
     void offline            (bool status);
     void presenceUpdated    (const QString &who, int status);
     void quitApp            ();
+
+    void initHubAccount     ();
+    void removeHubAccount   ();
 
 };
 
