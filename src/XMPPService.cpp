@@ -937,14 +937,10 @@ void XMPP::readyRead() {
         // --------------------------------------------------------
         // Hub messages
 
-        case XMPPServiceMessages::HUB_CALL_INIT_ACCOUNT: {
+        case XMPPServiceMessages::UPDATE_HUB: {
+            emit updateHubAccount();
             break;
         }
-
-        case XMPPServiceMessages::HUB_CALL_DELETE_ACCOUNT: {
-            break;
-        }
-
 
     }
 
