@@ -70,11 +70,11 @@ Q_DECL_EXPORT int main(int argc, char **argv)
     bb::Application app(argc, argv);
 
     // create the xmpp client, allocate the XMPP client on the stack
-    // XMPP xmpp;
-    // xmpp.set(&xmpp);
+    XMPP xmpp;
+    xmpp.set(&xmpp);
 
     // Create Headless application.
-    new HeadlessApplication(&app);
+    HeadlessApplication headless(&app);
 
 
     // Enter the application main event loop.
