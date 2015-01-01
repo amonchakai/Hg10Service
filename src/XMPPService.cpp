@@ -816,7 +816,7 @@ void XMPP::readyRead() {
 
 
         case XMPPServiceMessages::SEND_MESSAGE: {
-            qDebug() << "HEADLESS -- Send message";
+
 
             QByteArray code_str = m_Socket->read(sizeof(int));
             int size = *reinterpret_cast<int*>(code_str.data());
@@ -826,6 +826,7 @@ void XMPP::readyRead() {
             size = *reinterpret_cast<int*>(code_str.data());
             QString message = QString(QTextCodec::codecForName("UTF-8")->toUnicode(m_Socket->read(size)));
 
+            qDebug() << "HEADLESS -- Send message: " << message;
             sendPacket(QXmppMessage("", to, message));
 
         }

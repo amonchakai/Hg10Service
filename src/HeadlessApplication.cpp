@@ -290,6 +290,7 @@ void HeadlessApplication::removeHubItem(QVariantMap itemProperties) {
 
 void HeadlessApplication::initializeHub() {
 
+
     m_InitMutex.lock();
 
     // initialize UDS
