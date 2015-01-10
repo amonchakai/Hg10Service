@@ -355,6 +355,8 @@ void HeadlessApplication::resynchHub() {
                 file2.close();
             }
 
+            e.m_What.replace("&#39;","\'");
+
             bool existing = false;
             QVariantMap itemMap;
             for(int i = 0 ; i < hubItems.length() ; ++i) {
