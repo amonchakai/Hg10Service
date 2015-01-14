@@ -24,6 +24,12 @@ class GoogleConnectController;
 class HubIntegration;
 class HeadlessApplication;
 
+enum ConnectionType {
+    GOOGLE,
+    FACEBOOK,
+    OTHER
+};
+
 class XMPP : public QXmppClient {
     Q_OBJECT;
 
@@ -52,7 +58,7 @@ private:
     bool                                     m_SendContactWhenAvailable;
     QString                                  m_User;
     QMap<QString, int>                       m_ContactList;
-
+    ConnectionType                           m_ConnectionType;
 
     boost::shared_ptr<GoogleConnectController> m_GoogleConnect;
 
@@ -92,6 +98,7 @@ public Q_SLOTS:
     void presenceChanged    (const QString& bareJid, const QString& resource);
 
     void rosterReceived     ();
+    void writeEmptyCard     (const QString &bareJid);
     void vCardReceived      (const QXmppVCardIq&);
 
 

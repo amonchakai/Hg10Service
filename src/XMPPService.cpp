@@ -67,6 +67,7 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
         m_Connected(false),
         m_LastError(0),
         m_SendContactWhenAvailable(false),
+        m_ConnectionType(OTHER),
 
         m_Port(27015),
         m_NotificationEnabled(true),
@@ -163,6 +164,7 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
             stream >> encryption;
 
             if(!password.isEmpty()) {
+                m_ConnectionType = OTHER;
                 if(host.isEmpty())
                     connectToServer(m_User, password);
                 else {
@@ -278,6 +280,7 @@ void XMPP::readyRestart(const QString &token) {
     configuration.setAutoReconnectionEnabled(true);
 
     connectToServer(configuration);
+    m_ConnectionType = GOOGLE;
 
 }
 
@@ -300,6 +303,7 @@ void XMPP::oauth2Login(const QString &user) {
         configuration.setAutoReconnectionEnabled(true);
 
         connectToServer(configuration);
+        m_ConnectionType = GOOGLE;
 
         return;
     }
@@ -324,6 +328,7 @@ void XMPP::oauth2Login(const QString &user) {
         logger()->setMessageTypes(QXmppLogger::AnyMessage);
 
         connectToServer(configuration);
+        m_ConnectionType = FACEBOOK;
     }
 }
 
@@ -549,6 +554,7 @@ void XMPP::rosterReceived() {
         // request vCard of all the bareJids in roster
         if(!QFile::exists(vCardsDir + "/" + list.at(i) + ".xml")) {
             qDebug() << "request: " << list.at(i);
+            writeEmptyCard(list.at(i));
             vCardManager().requestVCard(list.at(i));
         } else {
             // if card already exists, then no need to request it.
@@ -562,10 +568,35 @@ void XMPP::rosterReceived() {
     emit offline(false);
 }
 
+void XMPP::writeEmptyCard(const QString &bareJid) {
+    if(m_ConnectionType != OTHER)
+        return;
+
+    QString vCardsDir = QDir::homePath() + QLatin1String("/vCards");
+
+    QXmppVCardIq vCard;
+    vCard.setFrom(bareJid);
+    vCard.setFullName(bareJid);
+
+    QFile file(vCardsDir + "/" + bareJid + ".xml");
+
+    if(file.open(QIODevice::ReadWrite)) {
+        QXmlStreamWriter stream(&file);
+        vCard.toXml(&stream);
+        file.close();
+    }
+
+    mutex.lockForWrite();
+    sendContact(bareJid);
+    mutex.unlock();
+}
+
 void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
     QString bareJid = vCard.from();
     QString vCardsDir = QDir::homePath() + QLatin1String("/vCards");
     QRegExp isFacebook("(.*)@chat.facebook.com");
+
+    qDebug() << vCard.from() << vCard.nickName() << vCard.email() << vCard.fullName() << vCard.id();
 
     if(bareJid.isEmpty() && vCard.fullName().isEmpty())
         return;
@@ -701,6 +732,10 @@ void XMPP::readyRead() {
 
                 if(!m_Connected) {
                     m_LastError = -1;
+                    m_ConnectionType = OTHER;
+                    QSettings settings("Amonchakai", "Hg10");
+                    settings.setValue("access_token", "");
+                    settings.setValue("User", m_User);
                     connectToServer(m_User, password);
                 } else
                     logConnection();
@@ -755,6 +790,10 @@ void XMPP::readyRead() {
                          break;
                  }
 
+                 m_ConnectionType = OTHER;
+                 QSettings settings("Amonchakai", "Hg10");
+                 settings.setValue("access_token", "");
+                 settings.setValue("User", m_User);
                  connectToServer(configuration);
             } else
                 logConnection();
@@ -789,6 +828,7 @@ void XMPP::readyRead() {
             if(m_Connected) {
                 disconnectFromServer();
                 m_Connected = false;
+                m_ContactList.clear();
                 QSettings settings("Amonchakai", "Hg10");
                 settings.setValue("access_token", "");
             }
