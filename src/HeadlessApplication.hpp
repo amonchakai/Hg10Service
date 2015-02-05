@@ -55,7 +55,6 @@ private:
     HubIntegration                                  *m_Hub;
 
     QMutex                                           m_InitMutex;
-    qlonglong                                        m_ItemCounter;
 
 public:
     HeadlessApplication(bb::Application *app);

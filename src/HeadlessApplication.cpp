@@ -37,8 +37,7 @@ HeadlessApplication::HeadlessApplication(bb::Application *app) :
         m_UdsUtil(NULL),
         m_Settings(NULL),
         m_HubCache(NULL),
-        m_Hub(NULL),
-        m_ItemCounter(0) {
+        m_Hub(NULL) {
 
     m_InvokeManager->setParent(this);
 
@@ -51,9 +50,6 @@ HeadlessApplication::HeadlessApplication(bb::Application *app) :
 
     qDebug() << "initializeHub()";
     initializeHub();
-
-    if(m_Settings != NULL)
-        m_ItemCounter = m_Settings->value("itemCounter", 0).toLongLong();
 
     // ---------------------------------------------------------------------
     // Catch events
@@ -93,8 +89,8 @@ void HeadlessApplication::onInvoked(const bb::system::InvokeRequest& request) {
     if(request.action().compare("bb.action.system.STARTED") == 0) {
             qDebug() << "HeadlessHubIntegration: onInvoked: HeadlessHubIntegration : auto started";
         } else if(request.action().compare("bb.action.START") == 0) {
-            XMPP::get()->waitRemote();
             qDebug() << "HeadlessHubIntegration: onInvoked: HeadlessHubIntegration : start";
+            XMPP::get()->waitRemote();
         } else if(request.action().compare("bb.action.STOP") == 0) {
             qDebug() << "HeadlessHubIntegration: onInvoked: HeadlessHubIntegration : stop";
             m_app->requestExit();
@@ -289,14 +285,14 @@ void HeadlessApplication::removeHubItem(QVariantMap itemProperties) {
 
 
 void HeadlessApplication::initializeHub() {
-
+    return;
 
     m_InitMutex.lock();
 
     // initialize UDS
     if (!m_UdsUtil) {
         qDebug() << "new UDSUtil()";
-        m_UdsUtil = new UDSUtil(QString("exampleHubService"), QString("hubassets"));
+        m_UdsUtil = new UDSUtil(QString("Hg10HubService"), QString("hubassets"));
     }
 
     if (!m_UdsUtil->initialized()) {
@@ -403,10 +399,7 @@ void HeadlessApplication::resynchHub() {
                     QDomDocument doc("vCard");
                     file.open(QIODevice::ReadOnly);
 
-                    if (!doc.setContent(&file)) {
-                        //file.close();
-                        //return;
-                    }
+                    doc.setContent(&file);
                     file.close();
 
                     QXmppVCardIq vCard;
@@ -414,12 +407,24 @@ void HeadlessApplication::resynchHub() {
 
                     name = vCard.fullName();
 
+
+                    // I should not have empty items!
+                    if(name.isEmpty()) {
+                        name = vCard.nickName();
+
+                        if(name.isEmpty())
+                            return;
+                    }
+
+
                 }
 
-                m_Hub->addHubItem(m_Hub->categoryId(), entry, name, e.m_What, e.m_When, QString::number(m_ItemCounter++), dirFile.mid(0, dirFile.length()-8), "",  e.m_Read == 0);
+                QString email = dirFile.mid(0, dirFile.length()-8);
+                // I should not have empty email addresses!
+                if(email.isEmpty())
+                    return;
 
-                if(m_Settings != NULL)
-                    m_Settings->setValue("itemCounter", m_ItemCounter);
+                m_Hub->addHubItem(m_Hub->categoryId(), entry, name, e.m_What, e.m_When, email, email, "",  e.m_Read == 0);
 
 
                 qint64 itemId;

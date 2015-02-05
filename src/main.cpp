@@ -76,7 +76,6 @@ Q_DECL_EXPORT int main(int argc, char **argv)
     // Create Headless application.
     HeadlessApplication headless(&app);
 
-
     // Enter the application main event loop.
     return bb::Application::exec();
 }

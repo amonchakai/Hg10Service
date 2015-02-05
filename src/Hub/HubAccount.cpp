@@ -54,7 +54,7 @@ void HubAccount::initialize()
         if (_hubCache->accountId() < 0) {
             _accountId = _udsUtil->addAccount(_name, _displayName, _serverName, _headlessTarget,
                                             _iconFilename, _lockedIconFilename, _composeIconFilename,
-                                            _description,  _supportsCompose, UDS_ACCOUNT_TYPE_OTHER);
+                                            _description,  _supportsCompose, UDS_ACCOUNT_TYPE_IM);
 
             if (_accountId > 0) {
                 qDebug() << "HubAccount::initialize: addAccount succeeded for account " << _accountId << " name: " << _name << "\n";

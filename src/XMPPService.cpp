@@ -596,8 +596,6 @@ void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
     QString vCardsDir = QDir::homePath() + QLatin1String("/vCards");
     QRegExp isFacebook("(.*)@chat.facebook.com");
 
-    qDebug() << vCard.from() << vCard.nickName() << vCard.email() << vCard.fullName() << vCard.id();
-
     if(bareJid.isEmpty() && vCard.fullName().isEmpty())
         return;
 
