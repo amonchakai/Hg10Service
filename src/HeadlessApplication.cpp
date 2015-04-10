@@ -285,7 +285,7 @@ void HeadlessApplication::removeHubItem(QVariantMap itemProperties) {
 
 
 void HeadlessApplication::initializeHub() {
-    return;
+//    return;
 
     m_InitMutex.lock();
 

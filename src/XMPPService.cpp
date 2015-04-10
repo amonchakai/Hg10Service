@@ -174,7 +174,7 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
                     configuration.setPort(port);
                     configuration.setUser(m_User);
                     configuration.setPassword(password);
-                    configuration.setAutoReconnectionEnabled(true);
+//                    configuration.setAutoReconnectionEnabled(true);
 
                     switch(encryption) {
                         case 0:
@@ -291,6 +291,8 @@ void XMPP::oauth2Login(const QString &user) {
     QSettings settings("Amonchakai", "Hg10");
 
     m_User = user;
+
+    qDebug() << "oauth2Login: " << m_User << " length(access_token): " << settings.value("access_token").value<QString>().length();
 
     if(!settings.value("access_token").value<QString>().isEmpty()) {
         QXmppConfiguration configuration;
@@ -596,7 +598,7 @@ void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
     QString vCardsDir = QDir::homePath() + QLatin1String("/vCards");
     QRegExp isFacebook("(.*)@chat.facebook.com");
 
-    if(bareJid.isEmpty() && vCard.fullName().isEmpty())
+    if(bareJid.isEmpty() && vCard.fullName().isEmpty() && m_ConnectionType != OTHER)
         return;
 
     if(bareJid.isEmpty())
@@ -774,7 +776,7 @@ void XMPP::readyRead() {
                  configuration.setPort(port);
                  configuration.setUser(m_User);
                  configuration.setPassword(password);
-                 configuration.setAutoReconnectionEnabled(true);
+//                 configuration.setAutoReconnectionEnabled(true);
 
                  switch(encryption) {
                      case 0:
@@ -979,6 +981,12 @@ void XMPP::readyRead() {
 
         case XMPPServiceMessages::UPDATE_HUB: {
             emit updateHubAccount();
+            break;
+        }
+
+        case XMPPServiceMessages::REMOVE_HUB: {
+            if(m_Hub)
+                m_Hub->removeAccounts();
             break;
         }
 

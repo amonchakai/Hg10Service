@@ -72,6 +72,10 @@ HubIntegration::~HubIntegration() {
 
 }
 
+void HubIntegration::removeAccounts() {
+    _udsUtil->cleanupAccountsExcept(_accountId, _name);
+    remove();
+}
 
 
 qint64 HubIntegration::accountId()

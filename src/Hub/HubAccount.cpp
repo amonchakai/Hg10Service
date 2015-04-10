@@ -54,7 +54,7 @@ void HubAccount::initialize()
         if (_hubCache->accountId() < 0) {
             _accountId = _udsUtil->addAccount(_name, _displayName, _serverName, _headlessTarget,
                                             _iconFilename, _lockedIconFilename, _composeIconFilename,
-                                            _description,  _supportsCompose, UDS_ACCOUNT_TYPE_IM);
+                                            _description,  _supportsCompose, UDS_ACCOUNT_TYPE_OTHER);
 
             if (_accountId > 0) {
                 qDebug() << "HubAccount::initialize: addAccount succeeded for account " << _accountId << " name: " << _name << "\n";
@@ -116,6 +116,7 @@ void HubAccount::initializeCategories(QVariantList newCategories)
                     break;
                 }
 
+                category["categoryId"] = retVal;
                 categories << category;
             }
 
@@ -166,9 +167,7 @@ QVariantList HubAccount::items()
         for(int index = 0; index < _items.size(); index++) {
             QVariantMap itemMap = _items.at(index).toMap();
 
-            if (itemMap["accountId"].toLongLong() ==  _accountId) {
-                items << itemMap;
-            }
+            items << itemMap;
         }
     }
 
@@ -182,7 +181,8 @@ bool HubAccount::addHubCategory(qint64 parentCategoryId, QString name)
     qDebug() << "add hub category: " << parentCategoryId << " - " << name;
 
     QVariantMap category;
-    category["name"] = name;
+    category["accountId"]        = _accountId;
+    category["name"]             = name;
     category["parentCategoryId"] = parentCategoryId;
 
     retVal = _udsUtil->addCategory(_accountId, name, parentCategoryId);
@@ -191,12 +191,78 @@ bool HubAccount::addHubCategory(qint64 parentCategoryId, QString name)
         qDebug() << "HubAccount::addHubCategory: addCategory failed for category: " << name << ", account: "<< _accountId << ", retVal: "<< retVal << "\n";
     } else {
         QVariantList categories = this->categories();
+
+        category["categoryId"] = retVal;
         categories << category;
 
         _hubCache->setCategories(categories);
     }
 
     return (retVal > 0);
+}
+
+bool HubAccount::updateHubCategory(qint64 categoryId, qint64 parentCategoryId, QString name)
+{
+    qint64 retVal = 0;
+
+    qDebug() << "update hub category: " << categoryId << " - " << parentCategoryId << " - " << name;
+
+    QVariantList categories = this->categories();
+
+    for(int index = 0; index < categories.size(); index++) {
+        QVariant category       = categories.at(index);
+        QVariantMap categoryMap = category.toMap();
+        qint64 cacheCategoryId  = categoryMap["categoryId"].toLongLong();
+
+        if (categoryId == cacheCategoryId) {
+            categoryMap["name"] = name;
+            categoryMap["parentCategoryId"] = parentCategoryId;
+
+            retVal = _udsUtil->updateCategory(_accountId, categoryId, name, parentCategoryId);
+
+            if (retVal <= 0) {
+                qDebug() << "HubAccount::updateHubCategory: updateCategory failed for category: " << name << ", account: "<< _accountId << ", retVal: "<< retVal << "\n";
+            } else {
+                _hubCache->setCategories(categories);
+            }
+            break;
+        }
+    }
+
+    return (retVal > 0);
+}
+
+bool HubAccount::removeHubCategory(qint64 categoryId)
+{
+    bool retval = false;
+
+    qDebug() << "remove hub category: " << categoryId;
+
+    QVariantList categories = this->categories();
+    QVariantList newCategories;
+
+    for(int index = 0; index < categories.size(); index++) {
+        QVariant category       = categories.at(index);
+        QVariantMap categoryMap = category.toMap();
+        qint64 cacheCategoryId  = categoryMap["categoryId"].toLongLong();
+
+        if (categoryId == cacheCategoryId) {
+            retval = _udsUtil->removeCategory(_accountId, categoryId);
+
+            if (!retval) {
+                qDebug() << "HubAccount::removeHubCategory: removeCategory failed for category: " << categoryId << ", account: "<< _accountId << ", retval: "<< retval << "\n";
+                break;
+            }
+        } else {
+            newCategories << category;
+        }
+    }
+
+    if (retval) {
+        _hubCache->setCategories(newCategories);
+    }
+
+    return (retval);
 }
 
 bool HubAccount::addHubItem(qint64 categoryId, QVariantMap &itemMap, QString name, QString subject, qint64 timestamp, QString itemSyncId,  QString itemUserData, QString itemExtendedData, bool notify)
@@ -243,17 +309,17 @@ bool HubAccount::updateHubItem(qint64 categoryId, qint64 itemId, QVariantMap &it
     return (retVal > 0);
 }
 
-bool HubAccount::removeHubItem(qint64 categoryId, qint64 itemId)
+bool HubAccount::removeHubItem(qint64 categoryId, qint64 sourceId)
 {
     qint64 retVal = 0;
 
-    qDebug() << "remove hub item: " << categoryId << " : " <<  itemId;
+    qDebug() << "remove hub item: " << categoryId << " : " <<  sourceId;
 
-    retVal = _udsUtil->removeItem(_accountId, categoryId, QString::number(itemId));
+    retVal = _udsUtil->removeItem(_accountId, categoryId, QString::number(sourceId));
     if (retVal <= 0) {
-        qDebug() << "HubAccount::removeHubItem: removeItem failed for item: " << categoryId << " : " <<  itemId << ", retVal: "<< retVal << "\n";
+        qDebug() << "HubAccount::removeHubItem: removeItem failed for item: " << categoryId << " : " <<  sourceId << ", retVal: "<< retVal << "\n";
     } else {
-        _hubCache->removeItem(itemId);
+        _hubCache->removeItem(sourceId);
     }
 
     return (retVal > 0);
@@ -364,18 +430,48 @@ void HubAccount::removeHubItemsBefore(qint64 categoryId, qint64 timestamp)
     } while (foundItems);
 }
 
-void HubAccount::repopulateHub()
+void HubAccount::clearHub()
 {
+    QVariantList categories = _hubCache->categories();
     QVariantList items = _hubCache->items();
 
     if (items.size() > 0) {
         for(int index = 0; index < items.size(); index++) {
             QVariantMap itemMap = items.at(index).toMap();
 
-            if (itemMap["accountId"].toLongLong() ==  _accountId) {
-                addHubItem(itemMap["categoryId"].toLongLong(), itemMap, itemMap["name"].toString(), itemMap["description"].toString(), itemMap["timestamp"].toLongLong(), itemMap["syncId"].toString(), itemMap["userData"].toString(), itemMap["extendedData"].toString(), false);
-            }
+            removeHubItem(itemMap["categoryId"].toLongLong(), itemMap["sourceId"].toLongLong());
+        }
+    }
+
+    if (categories.size() > 0) {
+        for(int index = categories.size()-1; index >= 0; index--) {
+            QVariantMap itemMap = categories.at(index).toMap();
+
+            removeHubCategory(itemMap["categoryId"].toLongLong());
+        }
+    }
+
+    _udsUtil->restoreNextIds(_accountId+1, _hubCache->lastCategoryId()+1, _hubCache->lastItemId()+1);
+}
+
+void HubAccount::repopulateHub()
+{
+    QVariantList categories = _hubCache->categories();
+    QVariantList items = _hubCache->items();
+
+    if (categories.size() > 0) {
+        for(int index = 0; index < categories.size(); index++) {
+            QVariantMap itemMap = categories.at(index).toMap();
+
+            addHubCategory(itemMap["parentCategoryId"].toLongLong(), itemMap["name"].toString());
+        }
+    }
+
+    if (items.size() > 0) {
+        for(int index = 0; index < items.size(); index++) {
+            QVariantMap itemMap = items.at(index).toMap();
+
+            addHubItem(itemMap["categoryId"].toLongLong(), itemMap, itemMap["name"].toString(), itemMap["description"].toString(), itemMap["timestamp"].toLongLong(), itemMap["syncId"].toString(), itemMap["userData"].toString(), itemMap["extendedData"].toString(), false);
         }
     }
 }
-

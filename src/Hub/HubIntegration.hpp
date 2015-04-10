@@ -16,7 +16,7 @@ class HubIntegration : public HubAccount {
 
 public:
     HubIntegration(UDSUtil* udsUtil, HubCache* hubCache);
-    virtual ~HubIntegration();    
+    virtual ~HubIntegration();
 
 
     qint64 accountId();
@@ -31,6 +31,7 @@ public:
     qint64 categoryId();
 
     void initializeCategories(QVariantList categories);
+    void removeAccounts();
 
 //public Q_SLOTS:
 

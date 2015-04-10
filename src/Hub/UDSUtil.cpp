@@ -178,8 +178,8 @@ bool UDSUtil::restoreNextIds(qint64 nextAccountId, qint64 nextCategoryId, qint64
 }
 
 qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName, QString target,
-						QString icon, QString lockedIcon, QString composeIcon, QString desc,
-						bool compose, uds_account_type_t type)
+                        QString icon, QString lockedIcon, QString composeIcon, QString desc,
+                        bool compose, uds_account_type_t type)
 {
     int retCode = -1;
     uds_account_key_t accountId;
@@ -217,74 +217,76 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
         displayName.append("-Work");
     }
 
-	// check for existing account and use that accountID as a starting point
-	QList<Account> allAccounts;
-	do {
-		allAccounts = accountService.accounts();
-		qDebug() <<  "UDSUtil::addAccount: # accounts: " << allAccounts.length();
+    // check for existing account and use that accountID as a starting point
+/*
+    QList<Account> allAccounts;
+    do {
+        allAccounts = accountService.accounts();
+        qDebug() <<  "UDSUtil::addAccount: # accounts: " << allAccounts.length();
 
-		if (allAccounts.length() > 0) {
-		   for(int index = 0; index < allAccounts.length(); index++) {
-			   Account account = allAccounts.at(index);
+        if (allAccounts.length() > 0) {
+           for(int index = 0; index < allAccounts.length(); index++) {
+               Account account = allAccounts.at(index);
 
-			   //char *accountName = (char *)account.displayName().toUtf8().constData();
-			   qDebug() << "UDSUtil: addAccount: account " << index << " : " << accountName << account.isServiceSupported(Service::Messages) << " : " << account.provider().id();
+               //char *accountName = (char *)account.displayName().toUtf8().constData();
+               qDebug() << "UDSUtil: addAccount: account " << index << " : " << accountName << account.isServiceSupported(Service::Messages) << " : " << account.provider().id();
 
-		       if (_itemPerimeterType == UDS_PERIMETER_ENTERPRISE) {
-		            account.setExternalEnterprise (Property::Enterprise);
+               if (_itemPerimeterType == UDS_PERIMETER_ENTERPRISE) {
+                    account.setExternalEnterprise (Property::Enterprise);
                    if (account.isServiceSupported(Service::Messages) && account.displayName() == displayName && account.provider().id() == "external" && account.isEnterprise() == Property::Enterprise) {
                        _nextAccountId = account.id();
                        qDebug() << "UDSUtil: addAccount: found existing account " << _nextAccountId;
                    }
-		       } else {
+               } else {
                    if (account.isServiceSupported(Service::Messages) && account.displayName() == displayName && account.provider().id() == "external") {
                        _nextAccountId = account.id();
                        qDebug() << "UDSUtil: addAccount: found existing account " << _nextAccountId;
                    }
                }
-			}
-		}
-	} while (allAccounts.length() == 0);
+            }
+        }
+    } while (allAccounts.length() == 0);
+*/
 
     // create the message service account
-	if (_nextAccountId == 0) {
-		QString providerId("external");  // this maps to the filename of the provider's json file
-		const Provider provider = accountService.provider(providerId);
-		Account account(provider);
-		account.setExternalData(true);
-		if (_itemPerimeterType == UDS_PERIMETER_ENTERPRISE) {
-		    account.setExternalEnterprise (Property::Enterprise);
-		}
-		account.setSettingsValue("server", serverName);
-		account.setDisplayName(displayName);
-		Result r = accountService.createAccount(provider.id(), account);
-		if (!r.isSuccess())
-		{
-			s = r.message();
-			p = s.toUtf8().data();
-			qCritical() << "UDSUtil::addAccount: account create failed !"<<s<<p<<account.isValid();
-			act = Account();
-		}
-		else
-		{
-			// Was successful, so lets get the account id
-			AccountKey id = account.id();
-			qDebug() << "UDSUtil::addAccount: account created with id "<<id<<account.isValid();
-			act = account;
-		}
+    if (_nextAccountId == 0) {
+        QString providerId("external");  // this maps to the filename of the provider's json file
+        const Provider provider = accountService.provider(providerId);
+        Account account(provider);
+        account.setExternalData(true);
+        if (_itemPerimeterType == UDS_PERIMETER_ENTERPRISE) {
+            account.setExternalEnterprise (Property::Enterprise);
+        }
+        account.setSettingsValue("server", serverName);
+        account.setDisplayName(displayName);
+        Result r = accountService.createAccount(provider.id(), account);
+        if (!r.isSuccess())
+        {
+            s = r.message();
+            p = s.toUtf8().data();
+            qCritical() << "UDSUtil::addAccount: account create failed !"<<s<<p<<account.isValid();
+            act = Account();
+        }
+        else
+        {
+            // Was successful, so lets get the account id
+            AccountKey id = account.id();
+            qDebug() << "UDSUtil::addAccount: account created with id "<<id<<account.isValid();
+            act = account;
+        }
 
-		if( act.isValid() ){
-			_nextAccountId = act.id();
-		}else{
-			_nextAccountId = 0;
-		}
+        if( act.isValid() ){
+            _nextAccountId = act.id();
+        }else{
+            _nextAccountId = 0;
+        }
     } else {
         accountService.updateAccount (act.id(), act);
     }
 
     qDebug() << "UDSUtil: addAccount: _udsHandle " << _udsHandle;
 
-	// create the UDS account
+    // create the UDS account
     uds_account_data_t *accountData = uds_account_data_create();
     uds_account_data_set_id(accountData,_nextAccountId);
     uds_account_data_set_name(accountData,accountName);
@@ -303,7 +305,7 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
         if (_nextAccountId == 0) {
             _nextAccountId++;
         }
-    	accountId = _nextAccountId;
+        accountId = _nextAccountId;
         //mapAccount[name] = uds_account_data_get_id(accountData);
         qDebug() << "UDSUtil::addAccount: account: " << name << ": added, id" << QString::number(_nextAccountId);
         _nextAccountId++;
@@ -319,16 +321,16 @@ qint64 UDSUtil::addAccount(QString name, QString displayName, QString serverName
 }
 
 bool UDSUtil::updateAccount(qint64 accountId, QString name, QString target,
-							QString icon, QString lockedIcon, QString composeIcon, QString desc,
-							bool compose, uds_account_type_t type)
+                            QString icon, QString lockedIcon, QString composeIcon, QString desc,
+                            bool compose, uds_account_type_t type)
 {
-	bool retVal = false;
-	char accountName[256];
-	char targetName[256];
-	char iconName[256];
-	char lockedIconName[256];
-	char composeIconName[256];
-	char description[256];
+    bool retVal = false;
+    char accountName[256];
+    char targetName[256];
+    char iconName[256];
+    char lockedIconName[256];
+    char composeIconName[256];
+    char description[256];
 
     if (!_isRegistrationSuccess) {
         qCritical() << "UDSUtil::updateAccount: not registered yet\n";
@@ -396,11 +398,11 @@ bool UDSUtil::removeAccount(qint64 accountId) {
 
     if (0 != (uds_account_removed(_udsHandle, accountId))) {
         qCritical() << "UDSUtil::removeAccount: uds_account_removed for " << " + accountId "
-        		"+ " << " failed with error " << retVal << "\n";
+                "+ " << " failed with error " << retVal << "\n";
         retVal = false;
     } else {
-    	qDebug() << "UDSUtil::removeAccount: account " << accountId << " removed";
-    	retVal = true;
+        qDebug() << "UDSUtil::removeAccount: account " << accountId << " removed";
+        retVal = true;
     }
 
     if (_async) {
@@ -412,75 +414,75 @@ bool UDSUtil::removeAccount(qint64 accountId) {
 
 void UDSUtil::cleanupAccountsExcept(const qint64 accountId, const QString& name)
 {
-	qDebug() << "UDSUtil::cleanupAccountsExcept : name : " << name << " : accountId: " << accountId;
+    qDebug() << "UDSUtil::cleanupAccountsExcept : name : " << name << " : accountId: " << accountId;
 
-	int accRemoved = 0;
+    int accRemoved = 0;
 
-	if (accountId != -1) {
-		QString s;
-		char *p = 0;
+    if (accountId != -1) {
+        QString s;
+        char *p = 0;
 
-		Account act;
-		AccountService accountService;
+        Account act;
+        AccountService accountService;
 
-		QString providerId("external");
-		const Provider provider = accountService.provider(providerId);
+        QString providerId("external");
+        const Provider provider = accountService.provider(providerId);
 
-		QList<Account> allAccounts;
-		do {
-			allAccounts = accountService.accounts();
-			qDebug() <<  "UDSUtil::cleanupAccountsExcept: # accounts: " << allAccounts.length();
+        QList<Account> allAccounts;
+        do {
+            allAccounts = accountService.accounts();
+            qDebug() <<  "UDSUtil::cleanupAccountsExcept: # accounts: " << allAccounts.length();
 
-			if (allAccounts.length() > 0) {
-				//JsonDataAccess jda;
+            if (allAccounts.length() > 0) {
+                //JsonDataAccess jda;
 
 
-			   for(int index = 0; index < allAccounts.length(); index++) {
-				   Account account = allAccounts.at(index);
-				   QByteArray rawBuffer;
+               for(int index = 0; index < allAccounts.length(); index++) {
+                   Account account = allAccounts.at(index);
+                   QByteArray rawBuffer;
 
-				   if (account.displayName() == name) {
-					   qDebug() << "UDSUtil: cleanupAccountsExcept: account " << index
-							   << "\n : Account ID: " << account.id()
-							   << "\n : Account Name: " << account.displayName()
-							   << "\n : Invoke Target:  " <<  account.externalSetupInvokeTarget()
-							   << "\n : Messages supported: " << account.isServiceSupported(Service::Messages)
-							   << "\n : Provider ID: " << account.provider().id();
+                   if (account.displayName() == name) {
+                       qDebug() << "UDSUtil: cleanupAccountsExcept: account " << index
+                               << "\n : Account ID: " << account.id()
+                               << "\n : Account Name: " << account.displayName()
+                               << "\n : Invoke Target:  " <<  account.externalSetupInvokeTarget()
+                               << "\n : Messages supported: " << account.isServiceSupported(Service::Messages)
+                               << "\n : Provider ID: " << account.provider().id();
 
-					   qint64 accId = account.id();
+                       qint64 accId = account.id();
 
-						if (accId != accountId) {
-							removeAccount(accId);
+                        if (accId != accountId) {
+                            removeAccount(accId);
 
-							Result r = accountService.deleteAccount(accId);
-							qDebug() << "UDSUtil::cleanupAccountsExcept : Removing account...";
-							if (!r.isSuccess())
-							{
-								s = r.message();
-								p = s.toUtf8().data();
-								qCritical() << "UDSUtil::cleanupAccountsExcept : account remove failed !"<<s<<p<<account.isValid();
-								act = Account();
-							}
-							else
-							{
-								// Was successful, so lets get the account id
-								qDebug() << "UDSUtil::cleanupAccountsExcept: account with id "<<accId<< " removed";
-								act = account;
-								accRemoved++;
-							}
-						}
-				   }
-				}
-			}
+                            Result r = accountService.deleteAccount(accId);
+                            qDebug() << "UDSUtil::cleanupAccountsExcept : Removing account...";
+                            if (!r.isSuccess())
+                            {
+                                s = r.message();
+                                p = s.toUtf8().data();
+                                qCritical() << "UDSUtil::cleanupAccountsExcept : account remove failed !"<<s<<p<<account.isValid();
+                                act = Account();
+                            }
+                            else
+                            {
+                                // Was successful, so lets get the account id
+                                qDebug() << "UDSUtil::cleanupAccountsExcept: account with id "<<accId<< " removed";
+                                act = account;
+                                accRemoved++;
+                            }
+                        }
+                   }
+                }
+            }
 
-			// in case service does not start up right away, retry until it becomes available
-			//usleep(5000);
-		} while (allAccounts.length() == 0);
-	} else {
-		qCritical() << "UDSUtil::cleanupAccountsExcept : No account id, aborting.";
-	}
+            // in case service does not start up right away, retry until it becomes available
+            //usleep(5000);
+        } while (allAccounts.length() == 0);
+    } else {
+        qCritical() << "UDSUtil::cleanupAccountsExcept : No account id, aborting.";
+    }
 
-	qDebug() << "UDSUtil::cleanupAccountsExcept: Accounts Removed: " << accRemoved;
+    qDebug() << "UDSUtil::cleanupAccountsExcept: Accounts Removed: " << accRemoved;
 }
 
 qint64 UDSUtil::addCategory(qint64 accountId, QString name, qint64 parentCategoryId = 0) {
@@ -522,7 +524,7 @@ qint64 UDSUtil::addCategory(qint64 accountId, QString name, qint64 parentCategor
             retVal = _nextCategoryId;
             _nextCategoryId++;
         } else {
-        	retVal = 0;
+            retVal = 0;
         }
     }
 
@@ -586,11 +588,11 @@ bool UDSUtil::removeCategory(qint64 accountId, qint64 categoryId) {
     }
 
     if (0 != (uds_category_removed(_udsHandle, accountId, categoryId))) {
-    	qCritical() << "UDSUtil::removeCategory:: uds_category_removed failed with error " << retVal << "\n";
-    	retVal = false;
+        qCritical() << "UDSUtil::removeCategory:: uds_category_removed failed with error " << retVal << "\n";
+        retVal = false;
     } else {
-    	qDebug() << "UDSUtil::removeCategory: category: " << categoryId << ": removed";
-    	retVal = true;
+        qDebug() << "UDSUtil::removeCategory: category: " << categoryId << ": removed";
+        retVal = true;
     }
 
     if (_async) {
@@ -602,7 +604,7 @@ bool UDSUtil::removeCategory(qint64 accountId, qint64 categoryId) {
 
 qint64 UDSUtil::addItem(qint64 accountId, qint64 categoryId, QVariantMap &itemMap, QString name, QString subject, QString mimeType,
                         QString icon, bool read, QString syncId, QString userData, QString extendedData,
-					    long long timestamp, unsigned int contextState, bool notify) {
+                        long long timestamp, unsigned int contextState, bool notify) {
     int retVal = -1;
     int retCode = -1;
     char sourceId[256];
@@ -696,7 +698,7 @@ qint64 UDSUtil::addItem(qint64 accountId, qint64 categoryId, QVariantMap &itemMa
             retVal = _nextItemId;
             _nextItemId++;
         } else {
-        	retVal = 0;
+            retVal = 0;
         }
     }
     uds_inbox_item_data_destroy(inbox_item);
@@ -817,12 +819,12 @@ bool UDSUtil::removeItem(qint64 accountId, qint64 categoryId, QString srcId) {
     strcpy(sourceId, srcId.toUtf8().data());
 
     if (0 != (uds_item_removed(_udsHandle, accountId, sourceId))) {
-    	qCritical() << "UDSUtil::removeItem: uds_item_removed for " << sourceId << " failed with error " << retVal << "\n";
-    	retVal = false;
+        qCritical() << "UDSUtil::removeItem: uds_item_removed for " << sourceId << " failed with error " << retVal << "\n";
+        retVal = false;
     } else {
-    	qDebug() << "UDSUtil::removeItem: item: " << sourceId << ": removed";
+        qDebug() << "UDSUtil::removeItem: item: " << sourceId << ": removed";
 
-    	retVal = true;
+        retVal = true;
     }
 
     if (_async) {
@@ -833,8 +835,8 @@ bool UDSUtil::removeItem(qint64 accountId, qint64 categoryId, QString srcId) {
 }
 
 bool UDSUtil::addAccountAction(qint64 accountId, QString action, QString title,
-								QString invtarget, QString invtargettype, QString imgsource,
-								QString mimetype, int placement) {
+                                QString invtarget, QString invtargettype, QString imgsource,
+                                QString mimetype, int placement) {
 
     bool retval = true;
     int retVal = -1;
@@ -893,17 +895,17 @@ bool UDSUtil::addAccountAction(qint64 accountId, QString action, QString title,
 }
 
 bool UDSUtil::updateAccountAction(qint64 accountId, QString action, QString title,
-								QString invtarget, QString invtargettype, QString imgsource,
-								QString mimetype, int placement) {
+                                QString invtarget, QString invtargettype, QString imgsource,
+                                QString mimetype, int placement) {
 
     bool retval = true;
-	int retVal = -1;
-	char accAction[256];
-	char accTitle[256];
-	char actionTarget[256];
-	char actionTargetType[256];
-	char mimeType[256];
-	char imgSource[256];
+    int retVal = -1;
+    char accAction[256];
+    char accTitle[256];
+    char actionTarget[256];
+    char actionTargetType[256];
+    char mimeType[256];
+    char imgSource[256];
 
     if (!_isRegistrationSuccess) {
         qCritical() << "UDSUtil::updateAccountActionData: not registered yet\n";
@@ -957,12 +959,12 @@ bool UDSUtil::addItemAction(qint64 accountId, QString action,
 
     bool retval = true;
     int retVal = -1;
-	char itemAction[256];
-	char itemActionTitle[256];
-	char itemActionTarget[256];
-	char itemActionTargetType[256];
-	char mimeType[256];
-	char imgSource[256];
+    char itemAction[256];
+    char itemActionTitle[256];
+    char itemActionTarget[256];
+    char itemActionTargetType[256];
+    char mimeType[256];
+    char imgSource[256];
 
     if (!_isRegistrationSuccess) {
         qCritical() << "UDSUtil::addItemActionData: not registered yet\n";
@@ -1018,12 +1020,12 @@ bool UDSUtil::updateItemAction(qint64 accountId, QString action,
 
     bool retval = true;
     int retVal = -1;
-	char itemAction[256];
-	char itemActionTitle[256];
-	char itemActionTarget[256];
-	char itemActionTargetType[256];
-	char mimeType[256];
-	char imgSource[256];
+    char itemAction[256];
+    char itemActionTitle[256];
+    char itemActionTarget[256];
+    char itemActionTargetType[256];
+    char mimeType[256];
+    char imgSource[256];
 
     if (!_isRegistrationSuccess) {
         qCritical() << "UDSUtil::updateItemActionData: not registered yet\n";

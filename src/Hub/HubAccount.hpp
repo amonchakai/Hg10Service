@@ -95,17 +95,26 @@ public Q_SLOTS:
     /*
      * Add a new category for the Hub account using the provided data.
      *
-     * @param categoryId - category ID
-     * @param itemMap - item data
-     * @param name - item name
-     * @param subject - item subject
-     * @param timestamp - item timestamp
-     * @param itemSyncId - item syncId
-     * @param itemUserData     - extra data specific to the app that is associated with this item
-     * @param itemExtendedData - extended data that controls special properties of Hub items
-     * @param notify - true if a notification is to be generated, false otherwise
+     * @param parentCategoryId - category ID
+     * @param name             - category name
      */
     bool addHubCategory(qint64 parentCategoryId, QString name);
+
+    /*
+     * Update category for the Hub account using the provided data.
+     *
+     * @param categoryId       - category ID
+     * @param parentCategoryId - category ID
+     * @param name             - category name
+     */
+    bool updateHubCategory(qint64 categoryId, qint64 parentCategoryId, QString name);
+
+    /*
+     * Remove category from the Hub account.
+     *
+     * @param categoryId       - category ID
+     */
+    bool removeHubCategory(qint64 categoryId);
 
     /*
      * Add a new item for the Hub account using the provided data.
@@ -173,8 +182,17 @@ public Q_SLOTS:
      */
     void removeHubItemsBefore(qint64 categoryId, qint64 timestamp);
 
+    /*
+     * Clear hub of all items and categories in the cache.
+     *
+     */
+    void clearHub();
 
-	void repopulateHub();
+    /*
+     * Repopulate Hub with categories and items from the cache.
+     *
+     */
+    void repopulateHub();
 
 protected:
     UDSUtil*  _udsUtil;
