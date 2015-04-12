@@ -62,6 +62,8 @@ private:
 
     boost::shared_ptr<GoogleConnectController> m_GoogleConnect;
 
+    int                                      m_ReconnectRequestCount;
+
     // -------------------------------------------------------------
     // data for remote control from UI application
     boost::shared_ptr<TcpThreadBind>        m_TcpThreadBind;
