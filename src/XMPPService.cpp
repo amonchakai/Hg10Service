@@ -615,11 +615,8 @@ void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
     if(bareJid.isEmpty() && vCard.fullName().isEmpty() && m_ConnectionType != OTHER)
         return;
 
-    if(bareJid.isEmpty()  && m_ConnectionType != OTHER)
+    if(bareJid.isEmpty())
         bareJid = m_User;
-    else {
-        bareJid = vCard.id();
-    }
 
     QDir dir;
     if(!dir.exists(vCardsDir))
@@ -631,11 +628,11 @@ void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
         QXmlStreamWriter stream(&file);
         if(m_ConnectionType != OTHER)
             vCard.toXml(&stream);
-        else {
+/*        else {
             QXmppVCardIq card = vCard;
             card.setFrom(bareJid);
             card.toXml(&stream);
-        }
+        }*/
         file.close();
     }
 
