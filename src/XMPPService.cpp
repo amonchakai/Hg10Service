@@ -68,7 +68,6 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
         m_LastError(0),
         m_SendContactWhenAvailable(false),
         m_ConnectionType(OTHER),
-        m_ReconnectRequestCount(0),
 
         m_Port(27015),
         m_NotificationEnabled(true),
@@ -242,13 +241,6 @@ void XMPP::oauthDisconnected() {
 }
 
 
-template<typename T, typename T2> T min(T a, T2 b) {
-    if(a > b)
-        return b;
-    else
-        return a;
-}
-
 // restart server, we may need to ask for a token
 // case 1 & 2:
 void XMPP::oauth2Restart() {
@@ -261,12 +253,7 @@ void XMPP::oauth2Restart() {
         return;
 
     m_Restarting = true;
-    if(m_ReconnectRequestCount > 15)
-        QTimer::singleShot(1000*60*60, this, SLOT(askNewToken()));
-    else {
-        m_ReconnectRequestCount++;
-        QTimer::singleShot(min(1000*60*60, abs(1000*pow(2,m_ReconnectRequestCount))), this, SLOT(askNewToken()));
-    }
+    QTimer::singleShot(3000, this, SLOT(askNewToken()));
 }
 
 // if token asked wait reply before asking a new token
@@ -279,7 +266,6 @@ void XMPP::askNewToken() {
 void XMPP::readyRestart(const QString &token) {
     qDebug() << "Ready to restart!";
     m_Restarting = false;
-    m_ReconnectRequestCount = 0;
 
     QSettings settings("Amonchakai", "Hg10");
     m_User = settings.value("User").toString();
@@ -626,13 +612,7 @@ void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
     if(file.open(QIODevice::ReadWrite))
     {
         QXmlStreamWriter stream(&file);
-        if(m_ConnectionType != OTHER)
-            vCard.toXml(&stream);
-/*        else {
-            QXmppVCardIq card = vCard;
-            card.setFrom(bareJid);
-            card.toXml(&stream);
-        }*/
+        vCard.toXml(&stream);
         file.close();
     }
 
@@ -839,8 +819,6 @@ void XMPP::readyRead() {
                 logConnection();
             } else {
                 logFailedConnecting();
-                m_ReconnectRequestCount = 0;
-                oauth2Restart();
             }
         }
             break;
@@ -889,7 +867,11 @@ void XMPP::readyRead() {
             QString message = QString(QTextCodec::codecForName("UTF-8")->toUnicode(m_Socket->read(size)));
 
             qDebug() << "HEADLESS -- Send message: " << message;
-            sendPacket(QXmppMessage("", to, message));
+            if(!sendPacket(QXmppMessage("", to, message))) {
+                if(m_ConnectionType == GOOGLE) {
+                    oauth2Restart();
+                }
+            }
 
         }
             break;
@@ -1277,5 +1259,4 @@ void XMPP::createRoom(const QString &room) {
     Q_ASSERT(check);
 
 }
-
 
