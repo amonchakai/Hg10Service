@@ -80,7 +80,24 @@ void HeadlessApplication::delayedXMPPInit() {
     Q_ASSERT(check);
     Q_UNUSED(check);
     qDebug() << "connected signal";
+
+
+    // ---------------------------------------------------------
+    // attach Internet connection status signals
+
+    check = QObject::connect(&m_NetworkStatus, SIGNAL(connectedChanged(bool)), this, SLOT(connectedChanged(bool)));
+    Q_ASSERT(check);
 }
+
+
+void HeadlessApplication::connectedChanged(bool connected) {
+    if(!connected) {
+        XMPP::get()->waitForInternet();
+    } else {
+        XMPP::get()->internetIsBack();
+    }
+}
+
 
 void HeadlessApplication::onInvoked(const bb::system::InvokeRequest& request) {
     qDebug() << "invoke Headless!" << request.action();

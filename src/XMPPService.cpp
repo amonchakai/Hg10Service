@@ -75,7 +75,7 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
         m_VcardManagerConnected(false) {
 
 
-
+    m_PauseService = false;
 
     bool check = connect(this, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
     Q_ASSERT(check);
@@ -137,63 +137,10 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
     } else {
 
 
+        // ---------------------------------------------------------------------
+        // connection using user ID/PASSWORD (XMPP or GOOGLE LEGACY)
+        simpleConnectRestart();
 
-
-
-
-    // ---------------------------------------------------------------------
-    // connection using user ID/PASSWORD (LEGACY)
-
-
-        QString directory = QDir::homePath() + QLatin1String("/ApplicationData");
-        if (!QFile::exists(directory)) {
-            return;
-        }
-
-        QFile file(directory + "/UserID.txt");
-        if (file.open(QIODevice::ReadOnly)) {
-            QDataStream stream(&file);
-            QString password, host, domain;
-            int port, encryption;
-            stream >> m_User;
-            stream >> password;
-
-            stream >> host;
-            stream >> domain;
-            stream >> port;
-            stream >> encryption;
-
-            if(!password.isEmpty()) {
-                m_ConnectionType = OTHER;
-                if(host.isEmpty())
-                    connectToServer(m_User, password);
-                else {
-                    QXmppConfiguration configuration;
-                    configuration.setHost(host);
-                    configuration.setDomain(domain);
-                    configuration.setPort(port);
-                    configuration.setUser(m_User);
-                    configuration.setPassword(password);
-//                    configuration.setAutoReconnectionEnabled(true);
-
-                    switch(encryption) {
-                        case 0:
-                            configuration.setStreamSecurityMode(QXmppConfiguration::TLSEnabled);
-                            break;
-                        case 1:
-                            configuration.setStreamSecurityMode(QXmppConfiguration::TLSDisabled);
-                            break;
-                        case 2:
-                           configuration.setStreamSecurityMode(QXmppConfiguration::TLSRequired);
-                           break;
-                        }
-
-                    connectToServer(configuration);
-                }
-            }
-
-            file.close();
-        }
     }
 
     waitRemote();
@@ -201,8 +148,86 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
 }
 
 
+void XMPP::waitForInternet() {
+    m_PauseService = true;
+    qDebug() << "INTERNET access has been lost. Disconnect & wait it return.";
+
+    oauthDisconnected();
+}
 
 
+void XMPP::internetIsBack() {
+    m_PauseService = false;
+    qDebug() << "INTERNET access is back.";
+
+    if(m_ConnectionType == GOOGLE) {
+        oauth2Restart();
+    } else {
+        simpleConnectRestart();
+    }
+
+}
+
+
+
+
+void XMPP::simpleConnectRestart() {
+
+    if(m_PauseService) return;
+
+    // ---------------------------------------------------------------------
+    // connection using user ID/PASSWORD (XMPP or GOOGLE LEGACY)
+
+    QString directory = QDir::homePath() + QLatin1String("/ApplicationData");
+    if (!QFile::exists(directory)) {
+        return;
+    }
+
+    QFile file(directory + "/UserID.txt");
+    if (file.open(QIODevice::ReadOnly)) {
+        QDataStream stream(&file);
+        QString password, host, domain;
+        int port, encryption;
+        stream >> m_User;
+        stream >> password;
+
+        stream >> host;
+        stream >> domain;
+        stream >> port;
+        stream >> encryption;
+
+        if(!password.isEmpty()) {
+            m_ConnectionType = OTHER;
+            if(host.isEmpty())
+                connectToServer(m_User, password);
+            else {
+                QXmppConfiguration configuration;
+                configuration.setHost(host);
+                configuration.setDomain(domain);
+                configuration.setPort(port);
+                configuration.setUser(m_User);
+                configuration.setPassword(password);
+//                    configuration.setAutoReconnectionEnabled(true);
+
+                switch(encryption) {
+                    case 0:
+                        configuration.setStreamSecurityMode(QXmppConfiguration::TLSEnabled);
+                        break;
+                    case 1:
+                        configuration.setStreamSecurityMode(QXmppConfiguration::TLSDisabled);
+                        break;
+                    case 2:
+                       configuration.setStreamSecurityMode(QXmppConfiguration::TLSRequired);
+                       break;
+                    }
+
+                connectToServer(configuration);
+            }
+        }
+
+        file.close();
+    }
+}
 
 
 // -----------------------------------------------------------------------------------------------
@@ -244,6 +269,8 @@ void XMPP::oauthDisconnected() {
 // restart server, we may need to ask for a token
 // case 1 & 2:
 void XMPP::oauth2Restart() {
+    if(m_PauseService) return;
+
     qDebug() << "try to renew Token!";
     if(m_Restarting)
         return;
@@ -468,6 +495,15 @@ void XMPP::presenceChanged(const QString& bareJid, const QString& resource) {
     int status = rosterManager().getPresence(bareJid, resource).availableStatusType();
     m_ContactList[bareJid] = status;
 
+    // this is a backup solution: apparently I cannot receive the vcard from non google contact, however, I can see their presence.
+    // then, I check if I have a corresponding vcard for the contact for which I receive presence information.
+    // if not available, create an empty vcard whith just ID info and send the contact info.
+    QString vCardsDir = QDir::homePath() + QLatin1String("/vCards");
+    if(!QFile::exists(vCardsDir + "/" + bareJid + ".xml")) {
+        writeEmptyCard(bareJid);
+        sendContact(bareJid);
+    }
+
     if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
         int code = XMPPServiceMessages::PRESENCE_UPDATE;
         m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
@@ -533,8 +569,6 @@ void XMPP::rosterReceived() {
 
         // request vCard of all the bareJids in roster
         if(!QFile::exists(vCardsDir + "/" + list.at(i) + ".xml")) {
-            qDebug() << "request: " << list.at(i);
-            writeEmptyCard(list.at(i));
             vCardManager().requestVCard(list.at(i));
         } else {
             // if card already exists, then no need to request it.
@@ -546,11 +580,25 @@ void XMPP::rosterReceived() {
 
     mutexLoadLocal.unlock();
     emit offline(false);
+
+
+    // --------------------------------------------------------------
+    // connection is successful, send cached messages.
+
+    bool over = false;
+    while(!over) {
+        over = m_MessageBuffer.empty();
+
+        if(!over) {
+            if(sendXMPPMessageTo(m_MessageBuffer.first().first, m_MessageBuffer.first().second)) {
+                m_MessageBuffer.pop_front();
+            }
+        }
+    }
+
 }
 
 void XMPP::writeEmptyCard(const QString &bareJid) {
-    if(m_ConnectionType != OTHER)
-        return;
 
     QString vCardsDir = QDir::homePath() + QLatin1String("/vCards");
 
@@ -597,9 +645,38 @@ void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
 
 }
 
-void XMPP::sendMessageTo(const QString &to, const QString &message) {
+bool XMPP::sendXMPPMessageTo(const QString &to, const QString &message) {
 
-    sendPacket(QXmppMessage("", to, message));
+    qDebug() << "send XMPP";
+
+    if(!sendPacket(QXmppMessage("", to, message))) {
+
+        qDebug() << "NOT SENT, CACHE";
+
+        // -------------------------------------------------
+        // the message could not be sent, cache & reconnect
+
+        bool message_request_sent = false;
+        for(int i = 0 ; i < m_MessageBuffer.size() ; ++i) {
+            if(m_MessageBuffer.at(i).first == to && m_MessageBuffer.at(i).second == message) {
+                message_request_sent = true;
+                break;
+            }
+        }
+
+        if(!message_request_sent)
+            m_MessageBuffer.push_back(QPair<QString, QString>(to, message));
+
+        if(m_ConnectionType == GOOGLE) {
+            oauth2Restart();
+        } else {
+            simpleConnectRestart();
+        }
+
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -788,11 +865,7 @@ void XMPP::readyRead() {
             QString message = QString(QTextCodec::codecForName("UTF-8")->toUnicode(m_Socket->read(size)));
 
             qDebug() << "HEADLESS -- Send message: " << message;
-            if(!sendPacket(QXmppMessage("", to, message))) {
-                if(m_ConnectionType == GOOGLE) {
-                    oauth2Restart();
-                }
-            }
+            sendXMPPMessageTo(to, message);
 
         }
             break;

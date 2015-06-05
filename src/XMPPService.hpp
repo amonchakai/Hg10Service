@@ -63,6 +63,7 @@ private:
     boost::shared_ptr<GoogleConnectController> m_GoogleConnect;
 
     int                                      m_ReconnectRequestCount;
+    QList< QPair<QString, QString> >         m_MessageBuffer;
 
     // -------------------------------------------------------------
     // data for remote control from UI application
@@ -75,8 +76,10 @@ private:
     bool                      m_NotificationEnabled;
     bool                      m_Restarting;
     bool                      m_VcardManagerConnected;
+    bool                      m_PauseService;
 
 
+    // --------------------------------------------------------------
 
     void updateSettings     ();
     void oauth2Login        (const QString &user);
@@ -87,6 +90,17 @@ private:
 public:
 
 
+
+    // --------------------------------------------------------------
+    // pause XMPP if no Internet access
+
+
+    void waitForInternet();
+    void internetIsBack();
+
+
+
+
 public Q_SLOTS:
 
     void oauth2Restart      ();
@@ -94,9 +108,11 @@ public Q_SLOTS:
     void askNewToken        ();
     void readyRestart       (const QString &token);
 
+    void simpleConnectRestart();
+
 
     void messageReceived    (const QXmppMessage&);
-    void sendMessageTo      (const QString &to, const QString &message);
+    bool sendXMPPMessageTo  (const QString &to, const QString &message);
     void presenceChanged    (const QString& bareJid, const QString& resource);
 
     void rosterReceived     ();

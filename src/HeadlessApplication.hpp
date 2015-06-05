@@ -24,7 +24,7 @@
 
 #include "Hub/UDSUtil.hpp"
 #include "Hub/HubCache.hpp"
-
+#include "NetworkStatus.hpp"
 
 namespace bb
 {
@@ -55,6 +55,7 @@ private:
     HubIntegration                                  *m_Hub;
 
     QMutex                                           m_InitMutex;
+    NetworkStatus                                    m_NetworkStatus;
 
 public:
     HeadlessApplication(bb::Application *app);
@@ -64,7 +65,7 @@ public:
 public Q_SLOTS:
     void resynchHub();
     void delayedXMPPInit();
-
+    void connectedChanged(bool connected);
 
 private slots:
     void onInvoked(const bb::system::InvokeRequest& request);

@@ -44,6 +44,7 @@ config_pri_source_group1 {
         $$quote($$BASEDIR/src/Hub/UDSUtil.cpp) \
         $$quote($$BASEDIR/src/Image/CookieJar.cpp) \
         $$quote($$BASEDIR/src/Image/HFRNetworkAccessManager.cpp) \
+        $$quote($$BASEDIR/src/NetworkStatus.cpp) \
         $$quote($$BASEDIR/src/XMPPService.cpp) \
         $$quote($$BASEDIR/src/base/QXmppArchiveIq.cpp) \
         $$quote($$BASEDIR/src/base/QXmppBindIq.cpp) \
@@ -113,6 +114,7 @@ config_pri_source_group1 {
         $$quote($$BASEDIR/src/Hub/UDSUtil.hpp) \
         $$quote($$BASEDIR/src/Image/CookieJar.hpp) \
         $$quote($$BASEDIR/src/Image/HFRNetworkAccessManager.hpp) \
+        $$quote($$BASEDIR/src/NetworkStatus.hpp) \
         $$quote($$BASEDIR/src/PrivateAPIKeys.h) \
         $$quote($$BASEDIR/src/XMPPService.hpp) \
         $$quote($$BASEDIR/src/base/QXmppArchiveIq.h) \
