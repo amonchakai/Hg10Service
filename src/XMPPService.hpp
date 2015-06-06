@@ -23,6 +23,7 @@ class QXmppMucRoom;
 class GoogleConnectController;
 class HubIntegration;
 class HeadlessApplication;
+class QNetworkProxy;
 
 enum ConnectionType {
     GOOGLE,
@@ -43,6 +44,7 @@ public:
 
     HubIntegration                           *m_Hub;
     HeadlessApplication                      *m_App;
+    QNetworkProxy                            *m_Proxy;
 
 private:
 
@@ -83,6 +85,8 @@ private:
 
     void updateSettings     ();
     void oauth2Login        (const QString &user);
+
+    void detectProxy        ();
 
 
     void createRoom         (const QString &room);

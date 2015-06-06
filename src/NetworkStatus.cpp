@@ -103,7 +103,7 @@ void NetworkStatus::setConnected(bool connected) {
 
         // if there is no access, wait 1 min in case the access could come back.
         if(!connected)
-            QTimer::singleShot(60*1000, this, SLOT(registerConnectionLoss()));
+            QTimer::singleShot(20*1000, this, SLOT(registerConnectionLoss()));
         else {
             m_Connected = connected;
             emit connectedChanged(m_Connected);

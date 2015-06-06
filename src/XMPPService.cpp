@@ -27,6 +27,7 @@
 #include "client/QXmppMucManager.h"
 #include <QSettings>
 #include <bb/Application>
+#include <QNetworkProxy>
 
 #include "Hub/HubIntegration.hpp"
 #include "GoogleConnectController.hpp"
@@ -613,10 +614,6 @@ void XMPP::writeEmptyCard(const QString &bareJid) {
         vCard.toXml(&stream);
         file.close();
     }
-
-    mutex.lockForWrite();
-    sendContact(bareJid);
-    mutex.unlock();
 }
 
 void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
@@ -765,6 +762,13 @@ void XMPP::readyRead() {
 
             code_str = m_Socket->read(sizeof(int));
             int encryption = *reinterpret_cast<int*>(code_str.data());
+
+            code_str = m_Socket->read(sizeof(int));
+            int proxy = *reinterpret_cast<int*>(code_str.data());
+
+            if(proxy == 1)
+                detectProxy();
+
 
             if(!m_Connected) {
                  m_LastError = -1;
@@ -1187,7 +1191,41 @@ void XMPP::initGroupChat() {
 }
 
 
+// -------------------------------------------------------------
+// handle PROXY
 
+void XMPP::detectProxy() {
+    // Set up proxy if we need one
+    // Code from httpProxy sample
+    netstatus_proxy_details_t details;
+    memset(&details, 0, sizeof(details));
+    bool proxyWasNotRequired = false;
+    if (netstatus_get_proxy_details(&details) != BPS_FAILURE) {
+        /* if proxy is required, then set proxy */
+        if (details.http_proxy_host == NULL) {
+            proxyWasNotRequired = true;
+            qDebug() << "No proxy required!";
+        } else {
+            // Create proxy and set details as available
+            m_Proxy = new QNetworkProxy();
+            m_Proxy->setType(QNetworkProxy::HttpProxy);
+            m_Proxy->setHostName(details.http_proxy_host);
+            if (details.http_proxy_port != 0) {
+                m_Proxy->setPort(details.http_proxy_port);
+            }
+            if (details.http_proxy_login_user != NULL) {
+                m_Proxy->setUser(details.http_proxy_login_user);
+            }
+            if (details.http_proxy_login_password != NULL) {
+                m_Proxy->setPassword(details.http_proxy_login_password);
+            }
+
+            QNetworkProxy::setApplicationProxy(*m_Proxy);
+        }
+    } else {
+        qDebug() << "Error attempting to get proxy details";
+    }
+}
 
 
 // -------------------------------------------------------------
