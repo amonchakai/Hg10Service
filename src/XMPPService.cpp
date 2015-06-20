@@ -627,8 +627,11 @@ void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
     if(!dir.exists(vCardsDir))
         dir.mkdir(vCardsDir);
 
+
+    mutex.lockForWrite(); // also secure writing the vcard
+
     QFile file(vCardsDir + "/" + bareJid + ".xml");
-    if(file.open(QIODevice::ReadWrite))
+    if(file.open(QIODevice::WriteOnly))
     {
         QXmlStreamWriter stream(&file);
         vCard.toXml(&stream);
@@ -636,7 +639,6 @@ void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
     }
 
 
-    mutex.lockForWrite();
     sendContact(bareJid);
     mutex.unlock();
 
