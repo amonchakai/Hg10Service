@@ -572,10 +572,31 @@ void XMPP::rosterReceived() {
         if(!QFile::exists(vCardsDir + "/" + list.at(i) + ".xml")) {
             vCardManager().requestVCard(list.at(i));
         } else {
-            // if card already exists, then no need to request it.
-            mutex.lockForWrite();
-            sendContact(list.at(i));
-            mutex.unlock();
+
+            // -------------------------------------------------------------
+            // get vCard from file
+
+            QString vCardsDir = QDir::homePath() + QLatin1String("/vCards");
+            QFile file(vCardsDir + "/" + list.at(i) + ".xml");
+
+            QDomDocument doc("vCard");
+            if (!file.open(QIODevice::ReadOnly))
+                return;
+            if (!doc.setContent(&file)) {
+            }
+            file.close();
+
+            QXmppVCardIq vCard;
+            vCard.parse(doc.documentElement());
+
+            if(vCard.fullName().isEmpty()) {
+                vCardManager().requestVCard(list.at(i));
+            } else {
+                // if card already exists, then no need to request it.
+                mutex.lockForWrite();
+                sendContact(list.at(i));
+                mutex.unlock();
+            }
         }
     }
 
