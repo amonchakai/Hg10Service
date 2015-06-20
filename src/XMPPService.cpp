@@ -589,7 +589,7 @@ void XMPP::rosterReceived() {
             QXmppVCardIq vCard;
             vCard.parse(doc.documentElement());
 
-            if(vCard.fullName().isEmpty()) {
+            if(vCard.fullName().isEmpty() || vCard.fullName() == list.at(i)) {
                 vCardManager().requestVCard(list.at(i));
             } else {
                 // if card already exists, then no need to request it.
