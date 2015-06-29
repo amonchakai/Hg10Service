@@ -28,6 +28,18 @@
 #include "Hub/HubCache.hpp"
 #include "../../Hg10/src/DataObjects.h"
 
+
+extern "C" {
+    #include <proto.h>
+    #include <privkey.h>
+    #include <message.h>
+    #include <context.h>
+    #include <instag.h>
+    #include <gcrypt.h>
+}
+
+
+
 using namespace bb::cascades;
 
 HeadlessApplication::HeadlessApplication(bb::Application *app) :
@@ -46,6 +58,8 @@ HeadlessApplication::HeadlessApplication(bb::Application *app) :
 
     qDebug() << "-----------------------------------\nStart Headless app!...\n------------------------------------";
 
+
+    OTRL_INIT;
 
 
     qDebug() << "initializeHub()";

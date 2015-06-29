@@ -17,7 +17,7 @@ HubIntegration::HubIntegration(UDSUtil* udsUtil, HubCache* hubCache) : HubAccoun
 
     _name = "Hg10";
     _displayName = "Hg10";
-    _description = "Messages";
+    _description = "";
     _serverName = "";
     _iconFilename = "images/Hg10Hub.png";
     _lockedIconFilename = "images/Hg10Hub.png";

@@ -116,12 +116,17 @@ public Q_SLOTS:
 
 
     void messageReceived    (const QXmppMessage&);
+    void fowardMessageToView(const QString &from, const QString &to, const QString &message);
     bool sendXMPPMessageTo  (const QString &to, const QString &message);
     void presenceChanged    (const QString& bareJid, const QString& resource);
 
     void rosterReceived     ();
     void writeEmptyCard     (const QString &bareJid);
     void vCardReceived      (const QXmppVCardIq&);
+
+    void goneSecure         (const QString& with);
+    void goneUnsecure       (const QString& with);
+    void fingerprintReceived(const QString& from, const QString& fingerprint);
 
 
     // -------------------------------------------------------------

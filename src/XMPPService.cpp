@@ -33,6 +33,8 @@
 #include "GoogleConnectController.hpp"
 #include "PrivateAPIKeys.h"
 #include "HeadlessApplication.hpp"
+#include "OTR.h"
+
 
 XMPP* XMPP::m_This = NULL;
 QReadWriteLock  mutex;
@@ -113,7 +115,7 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
 
 
 
-
+    initOTR();
 
 
     // ---------------------------------------------------------------------
@@ -432,61 +434,78 @@ void XMPP::logConnectionError(QXmppClient::Error error) {
 // Chat messages
 
 
+void XMPP::fowardMessageToView(const QString &from, const QString &to, const QString &message) {
 
+    if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
+        mutex.lockForWrite();
+
+        int code = XMPPServiceMessages::MESSAGE;
+        m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
+
+        int length = from.length();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(from.toAscii(), length);
+
+        length = to.length();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(to.toAscii(), length);
+
+        QByteArray sentMess = message.toUtf8();
+        length = sentMess.size();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(sentMess.data(), length);
+        m_Socket->flush();
+
+        mutex.unlock();
+    } else {
+
+        logReceivedMessage(from, to, message);
+
+        if(m_NotificationEnabled) {
+            bb::platform::Notification notif;
+            notif.notify();
+            emit updateHubAccount();
+        }
+    }
+}
 
 
 void XMPP::messageReceived(const QXmppMessage& message) {
-    mutex.lockForWrite();
+
+    // cleanup the user name, indeed the name could be amonchakai@someting.de/mbpr
+    // but all the rest of the code deals with amonchakai@someting.de
+    QString from = message.from();
+    int i = from.lastIndexOf('/');
+    if(i != -1) {
+        from = from.mid(0, i);
+    }
 
     if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
+
         if(message.body().isEmpty()) {
+            mutex.lockForWrite();
             int code = XMPPServiceMessages::STATUS_UPDATE;
             m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
 
             int length = message.from().length();
             m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
-            m_Socket->write(message.from().toAscii(), length);
+            m_Socket->write(from.toAscii(), length);
 
             code = message.state();
             m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
             m_Socket->flush();
+            mutex.unlock();
         } else {
-
-            int code = XMPPServiceMessages::MESSAGE;
-            m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
-
-            int length = message.from().length();
-            m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
-            m_Socket->write(message.from().toAscii(), length);
-
-            length = message.to().length();
-            m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
-            m_Socket->write(message.to().toAscii(), length);
-
-            QByteArray sentMess = message.body().toUtf8();
-            length = sentMess.size();
-            m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
-            m_Socket->write(sentMess.data(), length);
-            m_Socket->flush();
+            // Message need to be decrypted (if needed)
+            qDebug() << m_User << from << message.body();
+            message_received(m_User, from, "xmpp", message.body());
 
         }
     } else {
-        if(!message.body().isEmpty()) {
 
-            logReceivedMessage(message.from(), message.to(), message.body());
-
-            if(m_NotificationEnabled) {
-                bb::platform::Notification notif;
-                notif.notify();
-                emit updateHubAccount();
-            }
-
-        }
-
+        if(!message.body().isEmpty())
+            message_received(m_User, from, "xmpp", message.body());
     }
-
-    mutex.unlock();
-
 }
 
 
@@ -544,6 +563,7 @@ void XMPP::sendContactsPersence() {
 
 
 void XMPP::rosterReceived() {
+
     mutexLoadLocal.lockForWrite();
 
     if(!m_VcardManagerConnected) {
@@ -603,6 +623,16 @@ void XMPP::rosterReceived() {
     mutexLoadLocal.unlock();
     emit offline(false);
 
+    // --------------------------------------------------------------
+    // load OTR Keys, if exists
+
+    QString keyDir = QDir::homePath() + QLatin1String("/keys");
+    QDir dir;
+    if(!dir.exists(keyDir))
+        dir.mkdir(keyDir);
+    else
+        loadKeyIfExist(keyDir+"/keys.txt");
+
 
     // --------------------------------------------------------------
     // connection is successful, send cached messages.
@@ -612,7 +642,7 @@ void XMPP::rosterReceived() {
         over = m_MessageBuffer.empty();
 
         if(!over) {
-            if(sendXMPPMessageTo(m_MessageBuffer.first().first, m_MessageBuffer.first().second)) {
+            if(send_message(m_User, m_MessageBuffer.first().first, "xmpp", m_MessageBuffer.first().second)) {
                 m_MessageBuffer.pop_front();
             }
         }
@@ -664,6 +694,65 @@ void XMPP::vCardReceived(const QXmppVCardIq& vCard) {
     mutex.unlock();
 
 }
+
+
+void XMPP::goneSecure(const QString& with) {
+    mutex.lockForWrite();
+
+    if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
+        int code = XMPPServiceMessages::OTR_GONE_SECURE;
+        m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
+
+        int length = with.length();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(with.toAscii(), length);
+
+        m_Socket->flush();
+    }
+
+    mutex.unlock();
+}
+
+
+void XMPP::goneUnsecure(const QString& with) {
+    mutex.lockForWrite();
+
+    if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
+        int code = XMPPServiceMessages::OTR_GONE_UNSECURE;
+        m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
+
+        int length = with.length();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(with.toAscii(), length);
+
+        m_Socket->flush();
+    }
+
+    mutex.unlock();
+}
+
+void XMPP::fingerprintReceived(const QString& from, const QString& fingerprint) {
+    mutex.lockForWrite();
+
+    if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
+        int code = XMPPServiceMessages::OTR_FINGERPRINT_RECEIVED;
+        m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
+
+        int length = from.length();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(from.toAscii(), length);
+
+        length = fingerprint.length();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(fingerprint.toAscii(), length);
+
+        m_Socket->flush();
+    }
+
+    mutex.unlock();
+}
+
+
 
 bool XMPP::sendXMPPMessageTo(const QString &to, const QString &message) {
 
@@ -892,7 +981,7 @@ void XMPP::readyRead() {
             QString message = QString(QTextCodec::codecForName("UTF-8")->toUnicode(m_Socket->read(size)));
 
             qDebug() << "HEADLESS -- Send message: " << message;
-            sendXMPPMessageTo(to, message);
+            send_message(m_User, to, "xmpp", message);
 
         }
             break;
@@ -981,7 +1070,39 @@ void XMPP::readyRead() {
         }
             break;
 
-        // -------
+
+
+        // --------------------------------------------------------
+        // OTR messages
+
+        case XMPPServiceMessages::OTR_REQUEST_START: {
+            QByteArray code_str = m_Socket->read(sizeof(int));
+            int size = *reinterpret_cast<int*>(code_str.data());
+            QString contact = QString(m_Socket->read(size));
+
+            startOTRSession(m_User, contact);
+
+        }
+            break;
+
+
+        case XMPPServiceMessages::OTR_SETUP_KEYS: {
+
+            // --------------------------------------------------------------
+            // connection is successful, setup keys for OTR.
+
+            QString keyDir = QDir::homePath() + QLatin1String("/keys");
+            QDir dir;
+            if(!dir.exists(keyDir))
+                dir.mkdir(keyDir);
+
+            setupKeys(keyDir+"/keys.txt", m_User, "xmpp");
+        }
+            break;
+
+
+
+        // --------------------------------------------------------
         // MUC messages
         case XMPPServiceMessages::CREATE_ROOM: {
             QByteArray code_str = m_Socket->read(sizeof(int));
