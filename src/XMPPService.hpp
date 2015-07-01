@@ -103,7 +103,7 @@ public:
     void internetIsBack();
 
 
-
+    void sendOurFingerprint(const QString& fingerprint);
 
 public Q_SLOTS:
 
@@ -118,6 +118,7 @@ public Q_SLOTS:
     void messageReceived    (const QXmppMessage&);
     void fowardMessageToView(const QString &from, const QString &to, const QString &message);
     bool sendXMPPMessageTo  (const QString &to, const QString &message);
+    void sendDenied         (const QString& account, const QString& message);
     void presenceChanged    (const QString& bareJid, const QString& resource);
 
     void rosterReceived     ();
@@ -127,6 +128,7 @@ public Q_SLOTS:
     void goneSecure         (const QString& with);
     void goneUnsecure       (const QString& with);
     void fingerprintReceived(const QString& from, const QString& fingerprint);
+    void sendOTRStatus      (const QString& contact);
 
 
     // -------------------------------------------------------------

@@ -52,9 +52,12 @@
 
 
 void initOTR            ();
+void disconnectOTR      (const QString& ourAccount, const QString& account, const QString& protocol);
 void startOTRSession    (const QString& ourAccount, const QString& account);
+bool encryptionStatus   (const QString& account);
 void loadKeyIfExist     (const QString& filename);
 void setupKeys          (const QString& filename, const QString &accountName, const QString& protocol);
+void ownFingerprint     (const QString& accountname, const QString& protocol);
 void message_received   (const QString& ourAccount, const QString& account, const QString& protocol, const QString& message);
 bool send_message       (const QString& ourAccount, const QString& account, const QString& protocol, const QString& message);
 

@@ -16,8 +16,8 @@ extern "C" {
 }
 
 #include <QDir>
-
-
+#include <QTextCodec>
+#include <QSet>
 
 // =====================================================================================================
 // some global variable
@@ -25,7 +25,7 @@ extern "C" {
 
 bool secure = false;
 OtrlUserState us;
-
+QSet<QString> g_encrypted;
 
 
 // =====================================================================================================
@@ -56,6 +56,9 @@ static void myotr_gone_secure(void *opdata, ConnContext *context)
     qDebug() << "myotr_gone_secure()" ;
     secure = 1;
     XMPP::get()->goneSecure(context->username);
+
+    if(g_encrypted.find(context->username) == g_encrypted.end())
+        g_encrypted.insert(context->username);
 }
 
 static void myotr_gone_insecure(void *opdata, ConnContext *context)
@@ -63,6 +66,9 @@ static void myotr_gone_insecure(void *opdata, ConnContext *context)
     qDebug() << "myotr_gone_insecure() WARNING!" ;
     secure = 0;
     XMPP::get()->goneUnsecure(context->username);
+
+    if(g_encrypted.find(context->username) != g_encrypted.end())
+        g_encrypted.remove(context->username);
 }
 
 
@@ -128,6 +134,9 @@ void handle_msg_event(void *opdata, OtrlMessageEvent msg_event, ConnContext *con
       break;
     case OTRL_MSGEVENT_CONNECTION_ENDED:
       msg = "OTRL_MSGEVENT_CONNECTION_ENDED";
+      if(g_encrypted.find(context->username) != g_encrypted.end())
+          g_encrypted.remove(context->username);
+
       break;
     case OTRL_MSGEVENT_SETUP_ERROR:
       msg = "OTRL_MSGEVENT_SETUP_ERROR";
@@ -158,6 +167,10 @@ void handle_msg_event(void *opdata, OtrlMessageEvent msg_event, ConnContext *con
       break;
     case OTRL_MSGEVENT_RCVDMSG_UNENCRYPTED:
       msg = "OTRL_MSGEVENT_RCVDMSG_UNENCRYPTED";
+      if(g_encrypted.find(context->username) != g_encrypted.end())
+          g_encrypted.remove(context->username);
+      disconnectOTR(context->accountname, context->username, context->protocol);
+      XMPP::get()->goneUnsecure(context->username);
       break;
     case OTRL_MSGEVENT_RCVDMSG_UNRECOGNIZED:
       msg = "OTRL_MSGEVENT_RCVDMSG_UNRECOGNIZED";
@@ -214,6 +227,20 @@ void initOTR() {
     otrl_privkey_read_fingerprints( us, (keyDir+"/fingerprint.txt").toAscii(), 0, 0 );
 }
 
+
+void ownFingerprint(const QString& accountname, const QString& protocol) {
+    char our_fingerprint[45];
+    if( otrl_privkey_fingerprint( us, our_fingerprint, accountname.toAscii(), protocol.toAscii()) )
+    {
+        XMPP::get()->sendOurFingerprint(our_fingerprint) ;
+    }
+}
+
+
+void disconnectOTR(const QString& ourAccount, const QString& account, const QString& protocol) {
+     otrl_message_disconnect(us, &ui_ops, NULL, ourAccount.toAscii(), protocol.toAscii(), account.toAscii(), OTRL_INSTAG_BEST);
+}
+
 void loadKeyIfExist (const QString& filename) {
     gcry_error_t et;
     et = otrl_privkey_read( us, filename.toAscii());
@@ -239,6 +266,9 @@ void setupKeys(const QString& filename, const QString &accountName, const QStrin
     }
 }
 
+bool encryptionStatus(const QString& account) {
+    return g_encrypted.find(account) != g_encrypted.end();
+}
 
 void startOTRSession(const QString& ourAccount, const QString& account) {
     send_message (ourAccount, account, "xmpp", "?OTRv23?");
@@ -258,8 +288,10 @@ void message_received(const QString& ourAccount, const QString& account, const Q
     if(ignore == 0) {
 
         if (new_message) {
-            QString ourm(new_message);
+            QString ourm = QString(QTextCodec::codecForName("UTF-8")->toUnicode(new_message));
             otrl_message_free(new_message);
+
+
 
             // encrypted message
             XMPP::get()->fowardMessageToView(account, ourAccount, ourm);
@@ -281,22 +313,25 @@ bool send_message (const QString& ourAccount, const QString& account, const QStr
     char *new_message = NULL;
     gcry_error_t err;
 
-    qDebug() << "SEND: " << ourAccount << account;
-
-    err = otrl_message_sending(us, &ui_ops, NULL, ourAccount.toAscii(), protocol.toAscii(), account.toAscii(), OTRL_INSTAG_BEST, message.toAscii(), NULL, &new_message,
+    QByteArray sentMess = message.toUtf8();
+    err = otrl_message_sending(us, &ui_ops, NULL, ourAccount.toAscii(), protocol.toAscii(), account.toAscii(), OTRL_INSTAG_BEST, sentMess.data(), NULL, &new_message,
             OTRL_FRAGMENT_SEND_SKIP, NULL, NULL, NULL);
-
-    qDebug() << "error code: " << err;
 
     if (new_message) {
         QString ourm(new_message);
         otrl_message_free(new_message);
-        qDebug() << "encrypted message: " <<  ourm;
 
         return XMPP::get()->sendXMPPMessageTo(account, ourm);
     } else {
-        if(err == 0)
-            return XMPP::get()->sendXMPPMessageTo(account, message);
+        if(err == 0) {
+            if(g_encrypted.find(account) != g_encrypted.end()) {
+                g_encrypted.remove(account);
+                XMPP::get()->sendDenied(account, message);
+            } else {
+                return XMPP::get()->sendXMPPMessageTo(account, message);
+            }
+
+        }
     }
 
     if (err) {

@@ -752,6 +752,52 @@ void XMPP::fingerprintReceived(const QString& from, const QString& fingerprint) 
     mutex.unlock();
 }
 
+void XMPP::sendDenied(const QString& from, const QString& message) {
+    mutex.lockForWrite();
+
+    if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
+        int code = XMPPServiceMessages::OTR_WAS_NOT_SECURE;
+        m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
+
+        int length = from.length();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(from.toAscii(), length);
+
+        QByteArray sentMess = message.toUtf8();
+        length = sentMess.length();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(sentMess.data(), length);
+
+        m_Socket->flush();
+    }
+
+    mutex.unlock();
+}
+
+void XMPP::sendOTRStatus(const QString& contact) {
+    if(encryptionStatus(contact)) {
+        goneSecure(contact);
+    } else {
+        goneUnsecure(contact);
+    }
+}
+
+void XMPP::sendOurFingerprint(const QString& fingerprint) {
+    mutex.lockForWrite();
+
+    if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
+        int code = XMPPServiceMessages::OTR_OWN_FINGERPRINT;
+        m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
+
+        int length = fingerprint.length();
+        m_Socket->write(reinterpret_cast<char *>(&length), sizeof(int));
+        m_Socket->write(fingerprint.toAscii(), length);
+
+        m_Socket->flush();
+    }
+
+    mutex.unlock();
+}
 
 
 bool XMPP::sendXMPPMessageTo(const QString &to, const QString &message) {
@@ -1085,6 +1131,16 @@ void XMPP::readyRead() {
         }
             break;
 
+        case XMPPServiceMessages::OTR_REQUEST_STOP: {
+            QByteArray code_str = m_Socket->read(sizeof(int));
+            int size = *reinterpret_cast<int*>(code_str.data());
+            QString contact = QString(m_Socket->read(size));
+
+            disconnectOTR(m_User, contact, "xmpp");
+
+        }
+            break;
+
 
         case XMPPServiceMessages::OTR_SETUP_KEYS: {
 
@@ -1101,6 +1157,23 @@ void XMPP::readyRead() {
             break;
 
 
+        case XMPPServiceMessages::OTR_REQUEST_STATUS: {
+            QByteArray code_str = m_Socket->read(sizeof(int));
+            int size = *reinterpret_cast<int*>(code_str.data());
+            QString contact = QString(m_Socket->read(size));
+
+            sendOTRStatus(contact);
+        }
+            break;
+
+        case XMPPServiceMessages::OTR_GET_OWN_FINGERPRINT: {
+            QByteArray code_str = m_Socket->read(sizeof(int));
+            int size = *reinterpret_cast<int*>(code_str.data());
+            QString contact = QString(m_Socket->read(size));
+
+            ownFingerprint(m_User, "xmpp");
+        }
+            break;
 
         // --------------------------------------------------------
         // MUC messages
