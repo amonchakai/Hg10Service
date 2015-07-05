@@ -497,7 +497,7 @@ void XMPP::messageReceived(const QXmppMessage& message) {
             mutex.unlock();
         } else {
             // Message need to be decrypted (if needed)
-            qDebug() << m_User << from << message.body();
+            //qDebug() << m_User << from << message.body();
             message_received(m_User, from, "xmpp", message.body());
 
         }
@@ -1045,8 +1045,11 @@ void XMPP::readyRead() {
             code_str = m_Socket->read(sizeof(int));
             int presence = *reinterpret_cast<int*>(code_str.data());
 
+            code_str = m_Socket->read(sizeof(int));
+            int priority = *reinterpret_cast<int*>(code_str.data());
+
             QXmppPresence s = clientPresence();
-            s.setPriority(20);
+            s.setPriority(priority);
             s.setType(QXmppPresence::Available);
             s.setStatusText(text);
             s.setAvailableStatusType(static_cast<QXmppPresence::AvailableStatusType>(presence));
