@@ -103,7 +103,9 @@ public:
     void internetIsBack();
 
 
-    void sendOurFingerprint(const QString& fingerprint);
+    void sendOurFingerprint (const QString& fingerprint);
+    void smpAskQuestion     (const QString& question);
+    void smpReply           (bool valid);
 
 public Q_SLOTS:
 

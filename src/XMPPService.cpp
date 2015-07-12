@@ -782,6 +782,41 @@ void XMPP::sendOTRStatus(const QString& contact) {
     }
 }
 
+void XMPP::smpAskQuestion(const QString& question) {
+    mutex.lockForWrite();
+
+    if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
+        int code = XMPPServiceMessages::OTR_SMP_QUESTION;
+        m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
+
+        QByteArray sentMess = question.toUtf8();
+        int length = sentMess.size();
+        m_Socket->write(reinterpret_cast<char*>(&length), sizeof(int));
+        m_Socket->write(sentMess.data(), length);
+
+        m_Socket->flush();
+    }
+
+    mutex.unlock();
+}
+
+void XMPP::smpReply(bool valid) {
+    mutex.lockForWrite();
+
+    if (m_Socket && m_Socket->state() == QTcpSocket::ConnectedState) {
+        int code = XMPPServiceMessages::OTR_SMP_REPLY;
+        m_Socket->write(reinterpret_cast<char *>(&code), sizeof(int));
+
+        int reply = valid;
+        m_Socket->write(reinterpret_cast<char *>(&reply), sizeof(int));
+
+        m_Socket->flush();
+    }
+
+    mutex.unlock();
+}
+
+
 void XMPP::sendOurFingerprint(const QString& fingerprint) {
     mutex.lockForWrite();
 
@@ -1175,6 +1210,37 @@ void XMPP::readyRead() {
             QString contact = QString(m_Socket->read(size));
 
             ownFingerprint(m_User, "xmpp");
+        }
+            break;
+
+        case XMPPServiceMessages::OTR_SMP_REPLY: {
+            QByteArray code_str = m_Socket->read(sizeof(int));
+            int size = *reinterpret_cast<int*>(code_str.data());
+            QString contact = QString(m_Socket->read(size));
+
+            code_str = m_Socket->read(sizeof(int));
+            size = *reinterpret_cast<int*>(code_str.data());
+            QString message = QString(QTextCodec::codecForName("UTF-8")->toUnicode(m_Socket->read(size)));
+
+            respond_smp(contact, m_User, "xmpp", message);
+        }
+            break;
+
+
+        case XMPPServiceMessages::OTR_SMP_QUESTION: {
+            QByteArray code_str = m_Socket->read(sizeof(int));
+            int size = *reinterpret_cast<int*>(code_str.data());
+            QString contact = QString(m_Socket->read(size));
+
+            code_str = m_Socket->read(sizeof(int));
+            size = *reinterpret_cast<int*>(code_str.data());
+            QString question = QString(QTextCodec::codecForName("UTF-8")->toUnicode(m_Socket->read(size)));
+
+            code_str = m_Socket->read(sizeof(int));
+            size = *reinterpret_cast<int*>(code_str.data());
+            QString secret = QString(QTextCodec::codecForName("UTF-8")->toUnicode(m_Socket->read(size)));
+
+            ask_question_smp(contact, m_User, "xmpp", question, secret);
         }
             break;
 

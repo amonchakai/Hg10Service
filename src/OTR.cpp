@@ -19,6 +19,11 @@ extern "C" {
 #include <QTextCodec>
 #include <QSet>
 
+
+void handle_smp( OtrlTLV* tlvs, OtrlUserState userstate, const OtrlMessageAppOps* extended_ui_ops, const QString& recipientname, const QString & accountname, const QString& protocol, void* opdata );
+
+
+
 // =====================================================================================================
 // some global variable
 
@@ -304,6 +309,7 @@ void message_received(const QString& ourAccount, const QString& account, const Q
 
     if(tlvs) {
         qDebug() << "there are side info!";
+        handle_smp( tlvs, us, &ui_ops, account, ourAccount, protocol, NULL );
         otrl_tlv_free(tlvs);
     }
 }
@@ -341,3 +347,121 @@ bool send_message (const QString& ourAccount, const QString& account, const QStr
 
     return false;
 }
+
+
+
+
+// =====================================================================================================
+// Socialist millionaire protocol
+
+void respond_smp(const QString& recipientname, const QString & accountname, const QString& protocol, const QString &response) {
+    int context_added = 0;
+    ConnContext* smpcontext = otrl_context_find(us, recipientname.toAscii(), accountname.toAscii(), protocol.toAscii(), OTRL_INSTAG_BEST, true, &context_added, NULL, NULL);
+
+    otrl_message_respond_smp( us, &ui_ops, NULL, smpcontext, reinterpret_cast<const unsigned char*>(response.toUtf8().data()), response.toUtf8().length());
+
+}
+
+void ask_question_smp(const QString& recipientname, const QString & accountname, const QString& protocol, const QString& question, const QString &secret)
+{
+
+    int add_if_missing = true;
+    int context_added = 0;
+    int addedp = 0;
+    ConnContext* smpcontext = otrl_context_find(us, recipientname.toAscii(), accountname.toAscii(), protocol.toAscii(), 0, add_if_missing, &context_added, NULL, NULL);
+
+
+    if( !smpcontext )
+        return;
+
+    if(question.isEmpty())
+        otrl_message_initiate_smp( us, &ui_ops, NULL, smpcontext,
+                               (const unsigned char*)secret.toAscii().data(), secret.length() );
+    else
+        otrl_message_initiate_smp_q( us, &ui_ops, NULL, smpcontext, question.toAscii().data(),
+                (const unsigned char*)secret.toAscii().data(), secret.length() );
+
+    secure = 0;
+
+}
+
+
+void handle_smp( OtrlTLV* tlvs, OtrlUserState userstate, const OtrlMessageAppOps* extended_ui_ops, const QString& recipientname, const QString & accountname, const QString& protocol, void* opdata )
+{
+    const OtrlMessageAppOps* ui_ops = extended_ui_ops;
+
+
+    QString s;
+    OtrlTLV *tlv = NULL;
+    bool add_if_missing = true;
+    int addedp = 0;
+    int context_added = 0;
+
+    ConnContext* smpcontext = otrl_context_find(userstate, recipientname.toAscii(), accountname.toAscii(), protocol.toAscii(), OTRL_INSTAG_BEST, add_if_missing, &context_added, NULL, NULL);
+
+    NextExpectedSMP nextMsg = smpcontext->smstate->nextExpected;
+    qDebug() << "      nextMsg:" << nextMsg ;
+    qDebug() << "sm_prog_state:" << smpcontext->smstate->sm_prog_state ;
+
+
+    if( tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP1Q) )
+    {
+        qDebug() << "smp1q" ;
+        QString question(reinterpret_cast<char *>(tlv->data));
+        if (nextMsg != OTRL_SMP_EXPECT1)
+        {
+            qDebug() << "smp: spurious SMP1 received, aborting" ;
+            otrl_message_abort_smp( userstate, ui_ops, opdata, smpcontext);
+            otrl_sm_state_free(smpcontext->smstate);
+            XMPP::get()->smpReply(false);
+        }
+        else
+        {
+            XMPP::get()->smpAskQuestion(question);
+        }
+    }
+    if( tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP1))
+    {
+        qDebug() << "smp1" ;
+
+        if (nextMsg != OTRL_SMP_EXPECT1)
+        {
+            qDebug() << "smp: spurious SMP1 received, aborting" ;
+            otrl_message_abort_smp( userstate, ui_ops, opdata, smpcontext);
+            otrl_sm_state_free(smpcontext->smstate);
+            XMPP::get()->smpReply(false);
+        }
+        else
+        {
+            XMPP::get()->smpAskQuestion("");
+        }
+    }
+    if( tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP2))
+    {
+        if (nextMsg == OTRL_SMP_EXPECT2)
+        {
+            qDebug() << ("SMP2 received, otrl_message_receiving will have sent SMP3") ;
+            smpcontext->smstate->nextExpected = OTRL_SMP_EXPECT4;
+        }
+    }
+
+    if(smpcontext->smstate->sm_prog_state == OTRL_SMP_PROG_SUCCEEDED) {
+        qDebug() << "Success !!!";
+        XMPP::get()->smpReply(true);
+    }
+
+    if(smpcontext->smstate->sm_prog_state == -1) {
+        qDebug() << "Liar !!!";
+        XMPP::get()->smpReply(false);
+    }
+
+    tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP_ABORT);
+    if (tlv)
+    {
+        qDebug() << ("smp: received abort message!") ;
+        otrl_sm_state_free(smpcontext->smstate);
+        /* smp is in back in EXPECT1 */
+    }
+
+}
+

@@ -61,5 +61,8 @@ void ownFingerprint     (const QString& accountname, const QString& protocol);
 void message_received   (const QString& ourAccount, const QString& account, const QString& protocol, const QString& message);
 bool send_message       (const QString& ourAccount, const QString& account, const QString& protocol, const QString& message);
 
+void respond_smp(const QString& recipientname, const QString & accountname, const QString& protocol, const QString &response);
+void ask_question_smp(const QString& recipientname, const QString & accountname, const QString& protocol, const QString& question, const QString &secret);
+
 
 #endif /* OTR_H_ */
