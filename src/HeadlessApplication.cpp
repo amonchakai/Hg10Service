@@ -21,6 +21,7 @@
 #include <bb/cascades/AbstractPane>
 #include <bb/cascades/LocaleHandler>
 #include <bb/data/JsonDataAccess>
+#include <bb/platform/Notification>
 
 #include "XMPPService.hpp"
 #include "QXmppVCardIq.h"
@@ -160,6 +161,9 @@ void HeadlessApplication::onInvoked(const bb::system::InvokeRequest& request) {
                 markHubItemRead(attributesMap);
             }
 
+            bb::platform::Notification notif;
+            notif.clearEffects();
+
 
         } else if(request.action().compare("bb.action.MARKUNREAD") == 0) {
             //qDebug() << "HeadlessHubIntegration: onInvoked: mark unread" << request.data();
@@ -228,6 +232,9 @@ void HeadlessApplication::onInvoked(const bb::system::InvokeRequest& request) {
                     markHubItemRead(item);
                 }
             }
+
+            bb::platform::Notification notif;
+            notif.clearEffects();
 
 
         } else if(request.action().compare("bb.action.DELETE") == 0) {
