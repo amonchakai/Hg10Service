@@ -132,6 +132,9 @@ XMPP::XMPP(QObject *parent) : QXmppClient(parent),
         check = connect(m_GoogleConnect.get(), SIGNAL(failedRenew()), this, SLOT(oauth2Restart()));
         Q_ASSERT(check);
 
+        check = connect(m_GoogleConnect.get(), SIGNAL(failedConnection()), this, SLOT(waitForInternet()));
+        Q_ASSERT(check);
+
         check = connect(this, SIGNAL(disconnected()), this, SLOT(oauthDisconnected()));
         Q_ASSERT(check);
 

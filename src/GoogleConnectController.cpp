@@ -90,7 +90,12 @@ void GoogleConnectController::checkReply() {
             }
         } else {
             qDebug() << "reply... " << reply->errorString();
-            emit failedRenew();
+            if(reply->errorString() == "Host  not found") {
+                emit failedConnection();
+            } else
+                emit failedRenew();
+
+
         }
 
         reply->deleteLater();
@@ -144,7 +149,10 @@ void GoogleConnectController::checkRefresh() {
             }
         } else {
             qDebug() << "reply... " << reply->errorString();
-            emit failedRenew();
+            if(reply->errorString() == "Host  not found") {
+                emit failedConnection();
+            } else
+                emit failedRenew();
         }
 
         reply->deleteLater();

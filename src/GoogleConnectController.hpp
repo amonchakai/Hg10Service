@@ -39,6 +39,7 @@ Q_SIGNALS:
 
     void tokenObtained          (const QString &token);
     void failedRenew            ();
+    void failedConnection       ();
 
 };
 

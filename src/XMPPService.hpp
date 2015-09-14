@@ -99,7 +99,7 @@ public:
     // pause XMPP if no Internet access
 
 
-    void waitForInternet();
+
     void internetIsBack();
 
 
@@ -108,6 +108,8 @@ public:
     void smpReply           (bool valid);
 
 public Q_SLOTS:
+
+    void waitForInternet();
 
     void oauth2Restart      ();
     void oauthDisconnected  ();
