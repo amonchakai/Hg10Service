@@ -1,0 +1,121 @@
+userstate.lo: userstate.c \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stdlib.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/platform.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/srcversion.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/compiler_gnu.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/cdefs.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/arm/platform.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/_pack64.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/target_nto.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/_packpop.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/malloc.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/alloca.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/wait.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/signal.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/siginfo.h \
+ context.h context_priv.h /opt/local/include/gcrypt.h \
+ /Applications/Momentics.app/host_10_3_0_2702/darwin/x86/usr/lib/gcc/arm-unknown-nto-qnx8.0.0eabi/4.6.3/include/stdarg.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stdarg.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/string.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/strings.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/string_chk.h \
+ /opt/local/include/gpg-error.h \
+ /Applications/Momentics.app/host_10_3_0_2702/darwin/x86/usr/lib/gcc/arm-unknown-nto-qnx8.0.0eabi/4.6.3/include/stddef.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stddef.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stdio.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stdio_chk.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/types.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/socket.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/uio.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/time.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/select.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/limits.h \
+ dh.h auth.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/time.h \
+ privkey-t.h sm.h instag.h \
+ /Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/errno.h \
+ userstate.h privkey.h
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stdlib.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/platform.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/srcversion.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/compiler_gnu.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/cdefs.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/arm/platform.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/_pack64.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/target_nto.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/_packpop.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/malloc.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/alloca.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/wait.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/signal.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/siginfo.h:
+
+context.h:
+
+context_priv.h:
+
+/opt/local/include/gcrypt.h:
+
+/Applications/Momentics.app/host_10_3_0_2702/darwin/x86/usr/lib/gcc/arm-unknown-nto-qnx8.0.0eabi/4.6.3/include/stdarg.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stdarg.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/string.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/strings.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/string_chk.h:
+
+/opt/local/include/gpg-error.h:
+
+/Applications/Momentics.app/host_10_3_0_2702/darwin/x86/usr/lib/gcc/arm-unknown-nto-qnx8.0.0eabi/4.6.3/include/stddef.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stddef.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stdio.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/stdio_chk.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/types.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/socket.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/uio.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/time.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/sys/select.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/limits.h:
+
+dh.h:
+
+auth.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/time.h:
+
+privkey-t.h:
+
+sm.h:
+
+instag.h:
+
+/Applications/Momentics.app/target_10_3_0_698/qnx6//usr/include/errno.h:
+
+userstate.h:
+
+privkey.h:
